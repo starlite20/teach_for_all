@@ -22,6 +22,16 @@ const item = {
   show: { y: 0, opacity: 1 }
 };
 
+const getAETColor = (level: string) => {
+  switch (level) {
+    case "NYD": return { border: "border-red-400", bg: "bg-red-50", text: "text-red-600", gradient: "from-red-400 to-red-500" };
+    case "D": return { border: "border-yellow-400", bg: "bg-yellow-50", text: "text-yellow-600", gradient: "from-yellow-400 to-yellow-500" };
+    case "E": return { border: "border-green-400", bg: "bg-green-50", text: "text-green-600", gradient: "from-green-400 to-green-500" };
+    case "G": return { border: "border-blue-400", bg: "bg-blue-50", text: "text-blue-600", gradient: "from-blue-400 to-blue-500" };
+    default: return { border: "border-slate-200", bg: "bg-slate-50", text: "text-slate-600", gradient: "from-primary to-accent" };
+  }
+};
+
 export default function Dashboard() {
   const { user } = useAuth();
   const { t } = useI18n();
@@ -100,8 +110,6 @@ export default function Dashboard() {
           />
         </div>
       </motion.section>
-
-      {/* Recent Students */}
       <motion.section variants={item}>
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-bold font-display text-slate-800 flex items-center gap-3">
@@ -132,25 +140,30 @@ export default function Dashboard() {
           </motion.div>
         ) : (
           <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {students?.slice(0, 4).map((student, idx) => (
-              <motion.div
-                key={student.id}
-                whileHover={{ y: -5 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Card className="p-6 glass border-white/40 hover:shadow-2xl hover:shadow-indigo-500/5 transition-all cursor-pointer group rounded-[2rem]">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary/20 to-accent/20 flex items-center justify-center text-xl font-bold text-primary group-hover:scale-110 transition-transform">
-                      {student.name.charAt(0)}
-                    </div>
-                    <div className="overflow-hidden">
-                      <h3 className="font-bold text-slate-800 text-lg group-hover:text-primary transition-colors truncate">{student.name}</h3>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{student.aetLevel}</p>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
+            {students?.slice(0, 4).map((student, idx) => {
+              const colors = getAETColor(student.aetLevel);
+              return (
+                <motion.div
+                  key={student.id}
+                  whileHover={{ y: -5 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Link href={`/generator?studentId=${student.id}`}>
+                    <Card className={`p-6 glass border-2 ${colors.border} hover:shadow-2xl transition-all cursor-pointer group rounded-[2rem] h-full`}>
+                      <div className="flex items-center gap-4">
+                        <div className={`w-14 h-14 rounded-2xl bg-gradient-to-tr ${colors.gradient} flex items-center justify-center text-xl font-bold text-white group-hover:scale-110 transition-transform`}>
+                          {student.name.charAt(0)}
+                        </div>
+                        <div className="overflow-hidden">
+                          <h3 className="font-bold text-slate-800 text-lg group-hover:text-primary transition-colors truncate">{student.name}</h3>
+                          <p className={`text-xs font-bold ${colors.text} uppercase tracking-widest`}>{student.aetLevel}</p>
+                        </div>
+                      </div>
+                    </Card>
+                  </Link>
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </motion.section>

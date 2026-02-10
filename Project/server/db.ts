@@ -43,33 +43,23 @@ sqlite.exec(`
     aet_level TEXT NOT NULL,
     communication_level TEXT NOT NULL,
     sensory_preference TEXT NOT NULL,
+    learning_goals TEXT NOT NULL,
     primary_interest TEXT NOT NULL DEFAULT '',
+    preferred_language TEXT NOT NULL DEFAULT 'en',
     teacher_id TEXT NOT NULL,
-    created_at INTEGER
-  );
-  
-  -- Add primary_interest if it doesn't exist (migration)
-  BEGIN;
-  SELECT count(*) FROM pragma_table_info('students') WHERE name='primary_interest';
-  -- Note: Better-sqlite3 handles single-line migrations better, but for a simple fix:
-  -- We'll just try to add it and ignore error if it already exists in a separate catch block in code if needed,
-  -- but SQLite doesn't have a clean 'ADD COLUMN IF NOT EXISTS'.
-  -- A safer way is to use a try-catch in the TS code below.
-  COMMIT;
-  CREATE TABLE IF NOT EXISTS resources (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    type TEXT NOT NULL,
-    content TEXT NOT NULL,
-    language TEXT NOT NULL DEFAULT 'en',
-    student_id INTEGER NOT NULL,
     created_at INTEGER
   );
 `);
 
 // Migration for existing students table
 try {
+  sqlite.exec(`ALTER TABLE students ADD COLUMN preferred_language TEXT NOT NULL DEFAULT 'en'`);
+} catch (e) {
+  // Column likely already exists
+}
+
+try {
   sqlite.exec(`ALTER TABLE students ADD COLUMN primary_interest TEXT NOT NULL DEFAULT ''`);
 } catch (e) {
-  // Column likely already exists or table doesn't exist yet
+  // Column likely already exists
 }

@@ -34,6 +34,7 @@ export const students = sqliteTable("students", {
     sensoryPreference: text("sensory_preference").notNull(),
     learningGoals: text("learning_goals").notNull(),
     primaryInterest: text("primary_interest").notNull().default(""),
+    preferredLanguage: text("preferred_language").notNull().default("en"),
     teacherId: text("teacher_id").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });

@@ -17,6 +17,7 @@ export const students = pgTable("students", {
   sensoryPreference: text("sensory_preference").notNull(),
   learningGoals: text("learning_goals").notNull(),
   primaryInterest: text("primary_interest").notNull().default(""),
+  preferredLanguage: text("preferred_language").notNull().default("en"), // en, ar, bilingual
   teacherId: text("teacher_id").notNull(), // References users.id
   createdAt: timestamp("created_at").defaultNow(),
 });

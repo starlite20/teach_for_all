@@ -23,6 +23,16 @@ const item = {
   show: { y: 0, opacity: 1 }
 };
 
+const getAETColor = (level: string) => {
+  switch (level) {
+    case "NYD": return { border: "border-red-400", bg: "bg-red-50", text: "text-red-600", gradient: "from-red-400 to-red-500" };
+    case "D": return { border: "border-yellow-400", bg: "bg-yellow-50", text: "text-yellow-600", gradient: "from-yellow-400 to-yellow-500" };
+    case "E": return { border: "border-green-400", bg: "bg-green-50", text: "text-green-600", gradient: "from-green-400 to-green-500" };
+    case "G": return { border: "border-blue-400", bg: "bg-blue-50", text: "text-blue-600", gradient: "from-blue-400 to-blue-500" };
+    default: return { border: "border-slate-200", bg: "bg-slate-50", text: "text-slate-600", gradient: "from-primary to-accent" };
+  }
+};
+
 export default function Students() {
   const { data: students, isLoading } = useStudents();
   const { t } = useI18n();
@@ -75,79 +85,116 @@ export default function Students() {
         </motion.div>
       ) : (
         <motion.div variants={container} className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {students.map((student) => (
-            <motion.div key={student.id} variants={item} whileHover={{ y: -8 }}>
-              <Card className="glass border-white/40 shadow-xl shadow-indigo-500/5 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 overflow-hidden group rounded-[2.5rem] h-full flex flex-col">
-                <CardHeader className="p-8 flex flex-row items-center gap-6 pb-6 border-b border-slate-100/50">
-                  <div className="w-20 h-20 rounded-[1.5rem] bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-3xl font-display font-bold text-white shadow-xl shadow-primary/20 group-hover:scale-110 transition-transform duration-500">
-                    {student.name.charAt(0)}
-                  </div>
-                  <div className="overflow-hidden">
-                    <CardTitle className="text-2xl font-bold text-slate-900 mb-2 truncate">{student.name}</CardTitle>
-                    <Badge variant="secondary" className="bg-slate-100/50 text-slate-600 rounded-lg px-3 py-1 font-bold text-[10px] uppercase tracking-wider">
-                      {student.age} Years Old
-                    </Badge>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="p-8 space-y-5 flex-1">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-slate-50/50 rounded-2xl border border-white/50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Brain className="w-4 h-4 text-primary" />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Level</span>
-                      </div>
-                      <p className="font-bold text-slate-800 capitalize leading-tight">{student.aetLevel.replace("_", " ")}</p>
+          {students.map((student) => {
+            const colors = getAETColor(student.aetLevel);
+            return (
+              <motion.div key={student.id} variants={item} whileHover={{ y: -8 }}>
+                <Card className={cn(
+                  "glass bg-white/40 border-2 shadow-xl shadow-indigo-500/5 hover:shadow-2xl transition-all duration-500 overflow-hidden group rounded-[2.5rem] h-full flex flex-col",
+                  colors.border
+                )}>
+                  <CardHeader className="p-8 flex flex-row items-center gap-6 pb-6 border-b border-slate-100/50">
+                    <div className={cn(
+                      "w-20 h-20 rounded-[1.5rem] bg-gradient-to-tr flex items-center justify-center text-3xl font-display font-bold text-white shadow-xl group-hover:scale-110 transition-transform duration-500",
+                      colors.gradient
+                    )}>
+                      {student.name.charAt(0)}
                     </div>
-                    <div className="p-4 bg-slate-50/50 rounded-2xl border border-white/50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <MessageCircle className="w-4 h-4 text-emerald-500" />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Comm</span>
+                    <div className="overflow-hidden">
+                      <CardTitle className="text-2xl font-bold text-slate-900 mb-2 truncate">{student.name}</CardTitle>
+                      <div className="flex gap-2">
+                        <Badge variant="secondary" className="bg-slate-100/50 text-slate-600 rounded-lg px-2 py-0.5 font-bold text-[9px] uppercase tracking-wider">
+                          {student.age}y
+                        </Badge>
+                        <Badge className={cn("rounded-lg px-2 py-0.5 font-bold text-[9px] uppercase tracking-wider border-none", colors.bg, colors.text)}>
+                          {student.aetLevel}
+                        </Badge>
                       </div>
-                      <p className="font-bold text-slate-800 capitalize leading-tight">{student.communicationLevel}</p>
                     </div>
-                  </div>
-                </CardContent>
+                  </CardHeader>
 
-                <CardFooter className="p-8 pt-0 flex gap-3">
-                  <Button asChild className="flex-1 h-14 rounded-2xl bg-primary shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 text-base font-bold">
-                    <Link href={`/generator?studentId=${student.id}`}>
-                      <span className="flex items-center gap-2">
-                        <Sparkles className="w-5 h-5" />
-                        Generate
-                      </span>
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="w-14 h-14 rounded-2xl bg-white border border-slate-100 hover:bg-destructive/10 hover:text-destructive text-slate-400 transition-colors"
-                    onClick={() => {
-                      if (confirm("Are you sure? This will delete the student profile.")) {
-                        deleteStudent.mutate(student.id);
+                  <CardContent className="p-8 space-y-5 flex-1">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-slate-50/50 rounded-2xl border border-white/50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <MessageCircle className="w-4 h-4 text-primary" />
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Comm</span>
+                        </div>
+                        <p className="font-bold text-slate-800 capitalize leading-tight">{student.communicationLevel}</p>
+                      </div>
+                      <div className="p-4 bg-slate-50/50 rounded-2xl border border-white/50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Plus className="w-4 h-4 text-emerald-500" />
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Lang</span>
+                        </div>
+                        <p className="font-bold text-slate-800 capitalize leading-tight">{student.preferredLanguage}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {student.learningGoals?.split('|').slice(0, 2).map((goal: string) => (
+                        <Badge key={goal} variant="outline" className="text-[9px] border-slate-200 text-slate-500 rounded-lg font-medium">
+                          {goal}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+
+                  <CardFooter className="p-8 pt-0 flex gap-3">
+                    <Button asChild className="flex-1 h-14 rounded-2xl bg-primary shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 text-base font-bold">
+                      <Link href={`/generator?studentId=${student.id}`}>
+                        <span className="flex items-center gap-2">
+                          <Sparkles className="w-5 h-5" />
+                          Generate
+                        </span>
+                      </Link>
+                    </Button>
+
+                    <StudentForm
+                      student={student}
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          className="w-14 h-14 rounded-2xl bg-white border border-slate-100 hover:bg-slate-50 text-slate-400 transition-colors"
+                        >
+                          <UserCog className="w-5 h-5 text-indigo-500" />
+                        </Button>
                       }
-                    }}
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </Button>
-                </CardFooter>
-              </Card>
-            </motion.div>
-          ))}
+                    />
 
-          {/* Add Student Suggestion Card */}
+                    <Button
+                      variant="ghost"
+                      className="w-14 h-14 rounded-2xl bg-white border border-slate-100 hover:bg-destructive/10 hover:text-destructive text-slate-400 transition-colors"
+                      onClick={() => {
+                        if (confirm("Are you sure? This will delete the student profile.")) {
+                          deleteStudent.mutate(student.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </motion.div>
+            );
+          })}
+
           <motion.div variants={item} whileHover={{ y: -8 }}>
-            <div className="h-full min-h-[300px] border-2 border-dashed border-slate-200 rounded-[2.5rem] flex flex-col items-center justify-center p-8 hover:bg-white hover:border-primary/30 transition-all cursor-pointer group">
-              <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all scale-100 group-hover:rotate-90">
-                <Plus className="w-8 h-8" />
-              </div>
-              <p className="mt-4 font-bold text-slate-400 group-hover:text-primary transition-colors uppercase tracking-widest text-xs">Add New Profile</p>
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <StudentForm />
-              </div>
-            </div>
+            <StudentForm
+              trigger={
+                <div className="h-full min-h-[350px] border-2 border-dashed border-slate-200 rounded-[2.5rem] flex flex-col items-center justify-center p-8 bg-white/30 hover:bg-white hover:border-primary/30 transition-all cursor-pointer group">
+                  <div className="w-16 h-16 rounded-[1.5rem] bg-slate-50 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all scale-100 group-hover:rotate-90">
+                    <Plus className="w-8 h-8" />
+                  </div>
+                  <p className="mt-4 font-bold text-slate-400 group-hover:text-primary transition-colors uppercase tracking-widest text-xs">Add New Profile</p>
+                </div>
+              }
+            />
           </motion.div>
         </motion.div>
       )}
     </motion.div>
   );
 }
+
+import { cn } from "@/lib/utils";
+import { Users, UserCog } from "lucide-react";

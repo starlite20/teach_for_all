@@ -100,7 +100,12 @@ export const api = {
         studentId: z.number(),
         type: z.enum(['story', 'worksheet', 'pecs']),
         topic: z.string().optional(), // For specific request "story about sharing"
-        language: z.enum(['en', 'ar']),
+        language: z.enum(['en', 'ar', 'bilingual']),
+        aetContext: z.object({
+          area: z.string().optional(),
+          subTopic: z.string().optional(),
+          intention: z.string().optional(),
+        }).optional(),
       }),
       responses: {
         200: z.object({

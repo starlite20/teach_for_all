@@ -56,6 +56,13 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/students/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const id = parseInt(req.params.id);
+    const student = await storage.updateStudent(id, req.body);
+    res.json(student);
+  });
+
   app.delete(api.students.delete.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     await storage.deleteStudent(Number(req.params.id));
@@ -97,7 +104,7 @@ export async function registerRoutes(
   app.post(api.ai.generate.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const { studentId, type, topic, language } = req.body;
+      const { studentId, type, topic, language, aetContext } = req.body;
       const student = await storage.getStudent(studentId);
       if (!student) return res.status(404).json({ message: "Student not found" });
 
@@ -105,72 +112,73 @@ export async function registerRoutes(
         return res.status(503).json({ message: "AI services are currently unavailable (missing API key)" });
       }
 
-      const systemPrompt = `You are a Specialist SEN Teacher at Al Karamah School. 
-      Generate a ${type} in a BILINGUAL (Arabic/English) format.
-      
-      Student Profile:
-      - Name: ${student.name}
-      - AET Level: ${student.aetLevel}
-      - Communication: ${student.communicationLevel}
-      - Primary Interest: ${student.primaryInterest}
-      - Target Areas: ${student.learningGoals?.replaceAll('|', ', ')}
+      const systemPrompt = `
+        You are a specialized AET (Autism Education Trust) Resource Creator. 
+        Student Profile:
+        - Name: ${student.name}
+        - AET Level: ${student.aetLevel}
+        - Communication: ${student.communicationLevel}
+        - Primary Interest: ${student.primaryInterest}
+        - Language Preference: ${language || student.preferredLanguage}
+        - Target Area: ${aetContext?.area || "General Development"}
+        - Target Sub-Topic: ${aetContext?.subTopic || "Functional Skills"}
+        - Target Learning Intention: ${aetContext?.intention || "Holistic progress"}
 
-      Tone: Concrete, literal, and high-support.
-      Personalization: Incorporate the student's interest in "${student.primaryInterest}" as the primary narrative anchor.
-      
-      Structure:
-      - English on the top/left, Arabic on the bottom/right.
-      - If Social Story: Exactly 4 distinct steps. Each step must have "text_en" and "text_ar".
-      - If PECS: 6 cards. Each card must have "label_en" and "label_ar".
-      - If Worksheet: 3 questions. Each question must have "text_en" and "text_ar".
+        Tone: Concrete, literal, and high-support.
+        Personalization: ALWAYS anchor narratives in the student's interest: "${student.primaryInterest}".
+        Objective: The resource must specifically address the skills required to move the student forward in the Learning Intention: "${aetContext?.intention || 'specified target'}". Use "${student.primaryInterest}" as the vehicle for the lesson.
+        
+        Bilingual Requirement:
+        - If language is "bilingual", you MUST provide BOTH "text_en" AND "text_ar" for every element.
+        - If "en", only "text_en" is required (but "text_ar" can be empty).
+        - If "ar", only "text_ar" is required (but "text_en" can be empty).
+        - Use simple, direct language. No metaphors.
+
+        Return ONLY a JSON object.
       `;
 
       let formatPrompt = "";
       if (type === 'story') {
-        formatPrompt = `Create a Social Story about ${topic || 'daily skills'}. 
-        JSON structure: { 
-          "title": "Bilingual Title", 
+        formatPrompt = `Topic: ${topic || 'Daily Skills'}. 
+        JSON: { 
+          "title": "Clear Title", 
           "steps": [
             {
-              "title": "Step Title",
-              "text_en": "English text...", 
               "text_ar": "Arabic translation...", 
-              "image_prompt": "Visual description including ${student.primaryInterest}"
+              "image_prompt": "Widgit/PCS style symbol, simple vector, thick bold outlines, flat colors, white background, no shading, ${student.primaryInterest} context if applicable: ${topic}"
             }
           ] 
-        }`;
-      } else if (type === 'worksheet') {
-        formatPrompt = `Create a Worksheet about ${topic || 'learning'}. 
-        JSON structure: { 
-          "title": "Bilingual Title", 
-          "instructions": "Simple instructions", 
-          "questions": [
-            {
-              "text_en": "English question...", 
-              "text_ar": "Arabic translation...",
-              "type": "matching"
-            }
-          ] 
-        }`;
+        } (Exactly 4 steps)`;
       } else if (type === 'pecs') {
-        formatPrompt = `Create PECS cards. 
-        JSON structure: { 
-          "title": "Bilingual Title", 
+        formatPrompt = `Topic: ${topic || 'Objects'}. 
+        JSON: { 
+          "title": "Category Name", 
           "cards": [
             {
-              "label_en": "English label", 
-              "label_ar": "Arabic label", 
-              "image_prompt": "Simple icon style of [label] with ${student.primaryInterest} elements"
+              "label_en": "Word", 
+              "label_ar": "Word in Arabic", 
+              "image_prompt": "Widgit/PCS style symbol, single isolated object, thick bold outlines, flat colors, white background, no shading"
             }
           ] 
-        }`;
+        } (Exactly 6 cards)`;
+      } else {
+        formatPrompt = `Topic: ${topic || 'Learning'}. 
+        JSON: { 
+          "title": "Worksheet Title", 
+          "instructions": "Simple task", 
+          "questions": [
+            {
+              "text_en": "Question?", 
+              "text_ar": "Question in Arabic?",
+              "image_prompt": "Widgit/PCS style symbol, visual cue, simple vector, thick bold outlines, white background"
+            }
+          ] 
+        } (Exactly 3 questions)`;
       }
 
-      const prompt = `${systemPrompt}\n\n${formatPrompt}\n\nReturn valid JSON only. No markdown. Ensure Arabic is high-quality but simple.`;
-
-      console.log(`Generating BILINGUAL SEN content for ${type}...`);
+      console.log(`Generating content for ${type}...`);
       const result = await geminiModel.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        contents: [{ role: 'user', parts: [{ text: systemPrompt + "\n\n" + formatPrompt }] }],
         generationConfig: { responseMimeType: "application/json" }
       });
 
@@ -191,7 +199,7 @@ export async function registerRoutes(
             console.log(`Step ${i + 1}: Generating image for prompt: "${step.image_prompt}"`);
             step.image_url = await generateAIImage(step.image_prompt);
             if (step.image_url) {
-              console.log(`Step ${i + 1}: Image generated successfully (base64 length: ${step.image_url.length})`);
+              console.log(`Step ${i + 1}: Image generated successfully(base64 length: ${step.image_url.length})`);
               console.log(`Step ${i + 1}: Image Data Start: ${step.image_url.substring(0, 100)}...`);
             } else {
               console.log(`Step ${i + 1}: Image generation failed.`);
@@ -206,7 +214,7 @@ export async function registerRoutes(
             console.log(`Card ${i + 1}: Generating image for prompt: "${card.image_prompt}"`);
             card.image_url = await generateAIImage(card.image_prompt);
             if (card.image_url) {
-              console.log(`Card ${i + 1}: Image generated successfully (base64 length: ${card.image_url.length})`);
+              console.log(`Card ${i + 1}: Image generated successfully(base64 length: ${card.image_url.length})`);
               console.log(`Card ${i + 1}: Image Data Start: ${card.image_url.substring(0, 100)}...`);
             } else {
               console.log(`Card ${i + 1}: Image generation failed.`);
@@ -215,19 +223,29 @@ export async function registerRoutes(
         }
       }
 
-      const finalResult = {
+      res.json({
         title: content.title || topic || "Generated Resource",
-        content: content,
+        content,
         type,
-        language
-      };
-
-      console.log("Final generated resource object:", JSON.stringify(finalResult, null, 2));
-      res.json(finalResult);
-
-    } catch (error) {
+        language: language || student.preferredLanguage,
+        studentId
+      });
+    } catch (error: any) {
       console.error("AI Generation Error:", error);
-      res.status(500).json({ message: "Failed to generate content" });
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/ai/regenerate-image", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ message: "Prompt required" });
+
+    try {
+      const image_url = await generateAIImage(prompt);
+      res.json({ image_url });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 

@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertStudentSchema, type InsertStudent, type Student } from "@shared/schema";
-import { useCreateStudent } from "@/hooks/use-students";
+import { useCreateStudent, useUpdateStudent } from "@/hooks/use-students";
 import { useI18n } from "@/lib/i18n";
 import {
   Dialog,
@@ -26,6 +26,8 @@ import { Plus, Check, ChevronsUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 const AET_AREAS = [
   "Social Understanding",
@@ -36,21 +38,41 @@ const AET_AREAS = [
   "Independence and Community Participation"
 ];
 
-export function StudentForm() {
-  const [open, setOpen] = useState(false);
+const LANGUAGES = [
+  { value: "en", label: "English" },
+  { value: "ar", label: "Arabic" },
+  { value: "bilingual", label: "Bilingual" }
+];
+
+interface StudentFormProps {
+  student?: Student;
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function StudentForm({ student, trigger, open: externalOpen, onOpenChange: setExternalOpen }: StudentFormProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = externalOpen ?? internalOpen;
+  const setOpen = setExternalOpen ?? setInternalOpen;
+
   const { t } = useI18n();
   const createStudent = useCreateStudent();
+  const { mutate: updateStudent, isPending: isUpdating } = useUpdateStudent();
+
+  const isEdit = !!student;
 
   const form = useForm<InsertStudent>({
     resolver: zodResolver(insertStudentSchema),
     defaultValues: {
-      name: "",
-      age: 5,
-      aetLevel: "NYD",
-      communicationLevel: "verbal",
-      sensoryPreference: "",
-      learningGoals: "",
-      primaryInterest: "",
+      name: student?.name ?? "",
+      age: student?.age ?? 5,
+      aetLevel: student?.aetLevel ?? "NYD",
+      communicationLevel: student?.communicationLevel ?? "verbal",
+      sensoryPreference: student?.sensoryPreference ?? "",
+      learningGoals: student?.learningGoals ?? "",
+      primaryInterest: student?.primaryInterest ?? "",
+      preferredLanguage: student?.preferredLanguage ?? "en",
     },
   });
 
@@ -65,112 +87,139 @@ export function StudentForm() {
   };
 
   const onSubmit = (data: InsertStudent) => {
-    createStudent.mutate(data, {
-      onSuccess: () => {
-        setOpen(false);
-        form.reset();
-      },
-    });
+    if (isEdit) {
+      updateStudent({ id: student.id, data }, {
+        onSuccess: () => setOpen(false)
+      });
+    } else {
+      createStudent.mutate(data, {
+        onSuccess: () => {
+          setOpen(false);
+          form.reset();
+        },
+      });
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5">
-          <Plus className="w-4 h-4" />
-          {t("students.add")}
-        </Button>
+        {trigger ?? (
+          <Button className="gap-2 bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5">
+            <Plus className="w-4 h-4" />
+            {t("students.add")}
+          </Button>
+        )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto rounded-2xl">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto rounded-3xl border-none shadow-2xl glass">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl text-primary">{t("students.add")}</DialogTitle>
+          <DialogTitle className="font-display text-3xl text-primary font-bold">
+            {isEdit ? "Edit Student Profile" : t("students.add")}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4 pb-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" {...form.register("name")} placeholder="Student Name" className="rounded-xl h-12" />
+              <Label className="font-bold text-slate-700 ml-1">Name</Label>
+              <Input {...form.register("name")} placeholder="Student Name" className="rounded-2xl h-12 bg-white/50 border-slate-200 focus:ring-primary/20" />
               {form.formState.errors.name && <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="age">{t("students.age")}</Label>
+              <Label className="font-bold text-slate-700 ml-1">{t("students.age")}</Label>
               <Input
-                id="age"
                 type="number"
                 {...form.register("age", { valueAsNumber: true })}
-                className="rounded-xl h-12"
+                className="rounded-2xl h-12 bg-white/50 border-slate-200 focus:ring-primary/20"
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="primaryInterest">Primary Interest (Visual Anchor)</Label>
-            <Input
-              id="primaryInterest"
-              {...form.register("primaryInterest")}
-              placeholder="e.g. Dinosaurs, Space, Trains"
-              className="rounded-xl h-12"
-            />
-            <p className="text-[10px] text-slate-400 italic">This will be used to theme all generated resources.</p>
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>{t("students.aet")}</Label>
-              <Select onValueChange={(val) => form.setValue("aetLevel", val)} defaultValue="NYD">
-                <SelectTrigger className="rounded-xl h-12">
-                  <SelectValue placeholder="Select indicator" />
+              <Label className="font-bold text-slate-700 ml-1">Preferred Language</Label>
+              <Select
+                onValueChange={(val) => form.setValue("preferredLanguage", val as any)}
+                value={form.watch("preferredLanguage")}
+              >
+                <SelectTrigger className="rounded-2xl h-12 bg-white/50 border-slate-200">
+                  <SelectValue placeholder="Select language" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="NYD">Not Yet Developed (NYD)</SelectItem>
-                  <SelectItem value="D">Developing (D)</SelectItem>
-                  <SelectItem value="E">Established (E)</SelectItem>
-                  <SelectItem value="G">Generalised (G)</SelectItem>
+                <SelectContent className="rounded-2xl border-slate-100">
+                  {LANGUAGES.map(lang => (
+                    <SelectItem key={lang.value} value={lang.value} className="rounded-xl py-2">{lang.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>{t("students.comm")}</Label>
-              <Select onValueChange={(val) => form.setValue("communicationLevel", val)} defaultValue="verbal">
-                <SelectTrigger className="rounded-xl h-12">
+              <Label className="font-bold text-slate-700 ml-1">Primary Interest</Label>
+              <Input
+                {...form.register("primaryInterest")}
+                placeholder="e.g. Space, Trains"
+                className="rounded-2xl h-12 bg-white/50 border-slate-200 focus:ring-primary/20"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="font-bold text-slate-700 ml-1">AET Indicator</Label>
+              <Select
+                onValueChange={(val) => form.setValue("aetLevel", val)}
+                value={form.watch("aetLevel")}
+              >
+                <SelectTrigger className="rounded-2xl h-12 bg-white/50 border-slate-200">
+                  <SelectValue placeholder="Select indicator" />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border-slate-100">
+                  <SelectItem value="NYD" className="rounded-xl py-2">Not Yet Developed (NYD)</SelectItem>
+                  <SelectItem value="D" className="rounded-xl py-2">Developing (D)</SelectItem>
+                  <SelectItem value="E" className="rounded-xl py-2">Established (E)</SelectItem>
+                  <SelectItem value="G" className="rounded-xl py-2">Generalised (G)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="font-bold text-slate-700 ml-1">Communication</Label>
+              <Select
+                onValueChange={(val) => form.setValue("communicationLevel", val)}
+                value={form.watch("communicationLevel")}
+              >
+                <SelectTrigger className="rounded-2xl h-12 bg-white/50 border-slate-200">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="verbal">Verbal</SelectItem>
-                  <SelectItem value="non-verbal">Non-Verbal</SelectItem>
-                  <SelectItem value="pecs">PECS User</SelectItem>
-                  <SelectItem value="makaton">Makaton</SelectItem>
+                <SelectContent className="rounded-2xl border-slate-100">
+                  <SelectItem value="verbal" className="rounded-xl py-2">Verbal</SelectItem>
+                  <SelectItem value="non-verbal" className="rounded-xl py-2">Non-Verbal</SelectItem>
+                  <SelectItem value="pecs" className="rounded-xl py-2">PECS User</SelectItem>
+                  <SelectItem value="makaton" className="rounded-xl py-2">Makaton</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div className="space-y-3">
-            <Label>AET Target Areas (Multi-select)</Label>
-            <div className="grid grid-cols-1 gap-2 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <Label className="font-bold text-slate-700 ml-1">AET Target Areas</Label>
+            <div className="grid grid-cols-1 gap-2 p-4 bg-white/40 rounded-3xl border border-slate-100/50">
               {AET_AREAS.map((area) => (
-                <div key={area} className="flex items-center space-x-3">
+                <div key={area} className="flex items-center space-x-3 group cursor-pointer" onClick={() => toggleGoal(area)}>
                   <Checkbox
-                    id={area}
                     checked={selectedGoals.includes(area)}
-                    onCheckedChange={() => toggleGoal(area)}
                     className="rounded-md"
                   />
-                  <label
-                    htmlFor={area}
-                    className="text-sm font-medium leading-none cursor-pointer text-slate-600 hover:text-primary transition-colors"
-                  >
+                  <span className="text-sm font-medium text-slate-600 group-hover:text-primary transition-colors">
                     {area}
-                  </label>
+                  </span>
                 </div>
               ))}
             </div>
             <div className="flex flex-wrap gap-2 min-h-6">
               {selectedGoals.map((goal) => (
-                <Badge key={goal} variant="secondary" className="bg-primary/10 text-primary border-none text-[10px] py-1 px-3">
+                <Badge key={goal} variant="secondary" className="bg-primary/10 text-primary border-none text-[10px] py-1 px-3 rounded-lg">
                   {goal}
                 </Badge>
               ))}
@@ -178,19 +227,25 @@ export function StudentForm() {
           </div>
 
           <div className="space-y-2">
-            <Label>Sensory Preferences</Label>
+            <Label className="font-bold text-slate-700 ml-1">Sensory Guidance</Label>
             <Textarea
               {...form.register("sensoryPreference")}
-              placeholder="e.g. Avoids loud noises, likes deep pressure"
-              className="rounded-xl resize-none"
+              placeholder="Sensory needs..."
+              className="rounded-2xl resize-none bg-white/50 border-slate-200"
               rows={2}
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-6">
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="rounded-xl">{t("common.cancel")}</Button>
-            <Button type="submit" disabled={createStudent.isPending} className="rounded-xl px-8 bg-primary">
-              {createStudent.isPending ? t("common.loading") : t("common.create")}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="rounded-2xl">
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="submit"
+              disabled={createStudent.isPending || isUpdating}
+              className="rounded-2xl px-10 bg-primary font-bold shadow-xl shadow-primary/20"
+            >
+              {(createStudent.isPending || isUpdating) ? t("common.loading") : (isEdit ? "Update Profile" : t("common.create"))}
             </Button>
           </div>
         </form>
