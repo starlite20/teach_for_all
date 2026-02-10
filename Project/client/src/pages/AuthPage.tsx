@@ -51,7 +51,7 @@ export default function AuthPage() {
                         <Link href="/">
                             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary font-bold mb-4 cursor-pointer hover:scale-105 transition-transform">
                                 <Sparkles className="w-5 h-5" />
-                                <span>AET Assist</span>
+                                <span>TeachForAll</span>
                             </div>
                         </Link>
                         <h1 className="text-4xl font-bold font-display text-slate-900 mb-2">
@@ -82,7 +82,7 @@ export default function AuthPage() {
                     </div>
 
                     <p className="text-center mt-8 text-slate-400 text-sm font-medium">
-                        © 2024 AET Assist. All rights reserved.
+                        © 2026 TeachForAll. All rights reserved.
                     </p>
                 </motion.div>
             </div>

@@ -70,7 +70,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
                   <Sparkles className="w-6 h-6" />
                 </div>
-                <h1 className="text-xl font-bold text-slate-900 font-display">AET Assist</h1>
+                <h1 className="text-xl font-bold text-slate-900 font-display">TeachForAll</h1>
               </div>
             </Link>
           </div>
@@ -146,7 +146,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <header className="md:hidden h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-[50]">
           <div className="flex items-center gap-2">
             <Sparkles className="w-6 h-6 text-primary" />
-            <h1 className="text-xl font-bold text-slate-900 font-display">AET Assist</h1>
+            <h1 className="text-xl font-bold text-slate-900 font-display">TeachForAll</h1>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)}>
             <Menu className="w-6 h-6" />

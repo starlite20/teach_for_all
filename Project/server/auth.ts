@@ -100,14 +100,7 @@ export function setupAuth(app: Express) {
                 return res.status(401).json({ message: info?.message || "Login failed" });
             }
 
-            // AI Image Generation Test
-            console.log("LOGIN DETECTED: Triggering test school logo image generation...");
-            const testImage = await generateAIImage("A professional, high-quality school logo for 'Teach For All', modern educational theme, vector style");
-            if (testImage) {
-                console.log("LOGIN TEST SUCCESS: Image generated.");
-            } else {
-                console.log("LOGIN TEST FAILURE: No image generated.");
-            }
+            // AI Image Generation Test REMOVED for performance optimization
 
             req.login(user, (loginErr) => {
                 if (loginErr) return next(loginErr);

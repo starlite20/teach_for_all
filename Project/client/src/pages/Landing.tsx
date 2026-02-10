@@ -35,7 +35,7 @@ export default function Landing() {
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
             <Sparkles className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-bold font-display text-slate-900">AET Assist</h1>
+          <h1 className="text-2xl font-bold font-display text-slate-900">TeachForAll</h1>
         </motion.div>
 
         <motion.div
@@ -155,7 +155,7 @@ export default function Landing() {
       </main>
 
       <footer className="py-12 border-t border-slate-200/50 text-center text-slate-400 font-medium">
-        <p>© 2024 AET Assist. Elevating Special Education.</p>
+        <p>© 2026 TeachForAll. Elevating Special Education.</p>
       </footer>
     </div>
   );

@@ -138,6 +138,10 @@ export default function Generator() {
     }
   };
 
+  const supportedFormats = selectedMainArea
+    ? (AET_FRAMEWORK[selectedMainArea as keyof typeof AET_FRAMEWORK] as any).supported_formats || ["story", "worksheet", "pecs"]
+    : ["story", "worksheet", "pecs"];
+
   const getAETHeaderColor = (level?: string) => {
     switch (level) {
       case "NYD": return "#EF4444";
@@ -358,9 +362,27 @@ export default function Generator() {
               <div className="space-y-2">
                 <Label className="text-slate-700 font-bold text-[14px] ml-1">Choose Format</Label>
                 <div className="grid grid-cols-3 gap-3">
-                  <FormatButton active={type === "story"} icon={BookOpen} label="Story" onClick={() => setType("story")} />
-                  <FormatButton active={type === "worksheet"} icon={FileText} label="Work" onClick={() => setType("worksheet")} />
-                  <FormatButton active={type === "pecs"} icon={LayoutGrid} label="PECS" onClick={() => setType("pecs")} />
+                  <FormatButton
+                    active={type === "story"}
+                    disabled={!supportedFormats.includes("story")}
+                    icon={BookOpen}
+                    label="Story"
+                    onClick={() => setType("story")}
+                  />
+                  <FormatButton
+                    active={type === "worksheet"}
+                    disabled={!supportedFormats.includes("worksheet")}
+                    icon={FileText}
+                    label="Work"
+                    onClick={() => setType("worksheet")}
+                  />
+                  <FormatButton
+                    active={type === "pecs"}
+                    disabled={!supportedFormats.includes("pecs")}
+                    icon={LayoutGrid}
+                    label="PECS"
+                    onClick={() => setType("pecs")}
+                  />
                 </div>
               </div>
 
@@ -406,15 +428,16 @@ export default function Generator() {
             <div className="flex items-center gap-2 bg-white/50 p-1 rounded-xl border border-white/80 shadow-sm ml-4">
               <div className="flex items-center gap-1.5 px-2 border-r border-slate-200">
                 <Type className="w-3.5 h-3.5 text-slate-400" />
-                <input
-                  type="range"
-                  min="12"
-                  max="32"
-                  value={fontSize}
-                  onChange={(e) => setFontSize(Number(e.target.value))}
-                  className="w-16 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-                <span className="text-[10px] font-bold text-slate-500 w-4">{fontSize}</span>
+                <Select value={fontSize.toString()} onValueChange={(v) => setFontSize(Number(v))}>
+                  <SelectTrigger className="h-7 w-14 border-none bg-transparent text-[10px] font-bold text-slate-600 focus:ring-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[14, 18, 24, 32, 40].map(s => (
+                      <SelectItem key={s} value={s.toString()} className="text-xs">{s}px</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex gap-1 px-1 border-r border-slate-200">
@@ -502,18 +525,33 @@ export default function Generator() {
                   style={{ borderBottomColor: getAETHeaderColor(selectedStudent?.aetLevel) }}
                 >
                   <div>
-                    <h4 className="text-[14px] font-bold uppercase tracking-wider mb-1 opacity-70">AET Specialized Resource</h4>
+                    <h4 className="text-[14px] font-bold uppercase tracking-wider mb-1 opacity-70">
+                      {genLanguage === 'ar' ? 'مصدر تعليمي متخصص (AET)' : 'AET Specialized Resource'}
+                    </h4>
                     <p className="text-xl font-bold font-sans" contentEditable suppressContentEditableWarning>
-                      {selectedStudent?.name} | Target: {selectedIntention || "General Development"} | Level: {getFullAETLabel(selectedStudent?.aetLevel)}
+                      {selectedStudent?.name} | {genLanguage === 'ar' ? 'الهدف' : 'Target'}: {selectedIntention || "General Development"} | {genLanguage === 'ar' ? 'المستوى' : 'Level'}: {getFullAETLabel(selectedStudent?.aetLevel)}
                     </p>
                   </div>
+                  {(genLanguage === "ar" || genLanguage === "bilingual") && (
+                    <div className="text-right" dir="rtl">
+                      <p className="text-[14px] font-bold font-sans text-slate-400">وثيقة تعليمية مخصصة</p>
+                    </div>
+                  )}
                 </div>
+
+                {generate.isPending && (
+                  <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center rounded-[2.5rem]">
+                    <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+                    <h3 className="text-xl font-bold text-slate-800 animate-pulse">Personalizing for {selectedStudent?.name}...</h3>
+                    <p className="text-slate-500 font-medium mt-2">Aligning with AET Framework standards</p>
+                  </div>
+                )}
 
                 <ResourcePreview content={generatedContent} type={type} mode={genLanguage} onUpdate={(newFullContent) => setGeneratedContent(newFullContent)} />
 
                 {/* Footer on Print */}
                 <div className="mt-auto pt-8 border-t border-[var(--low-arousal-border)] text-[10px] italic flex justify-between opacity-50">
-                  <span>Generated by AET Assist | CaseID: {studentId}</span>
+                  <span>Generated by TeachForAll | CaseID: {studentId}</span>
                   <span>Date: {new Date().toLocaleDateString()}</span>
                 </div>
               </motion.div>
@@ -549,7 +587,8 @@ function LanguageButton({ active, label, onClick }: { active: boolean, label: st
   );
 }
 
-function FormatButton({ active, icon: Icon, label, onClick }: { active: boolean, icon: any, label: string, onClick: () => void }) {
+function FormatButton({ active, disabled, icon: Icon, label, onClick }: { active: boolean, disabled?: boolean, icon: any, label: string, onClick: () => void }) {
+  if (disabled) return null; // Hide totally as per requirement "hide... automatically"
   return (
     <button
       onClick={onClick}
@@ -603,14 +642,20 @@ function ResourcePreview({ content, type, mode, onUpdate }: { content: any, type
     onUpdate({ ...content, content: newData });
   };
 
-  const handleRegenerateImage = async (idx: number, prompt: string) => {
+  const handleRegenerateImage = async (idx: number, text: string) => {
     setRegenerating(idx);
     try {
-      const res = await apiRequest("POST", "/api/ai/regenerate-image", { prompt });
+      // New API format: Send text and type
+      const res = await apiRequest("POST", "/api/ai/regenerate-image", {
+        text,
+        type: type === 'pecs' ? 'pecs' : 'symbol'
+      });
       const { image_url } = await res.json();
       const newData = JSON.parse(JSON.stringify(data));
       if (type === 'story') newData.steps[idx].image_url = image_url;
       else if (type === 'pecs') newData.cards[idx].image_url = image_url;
+      else if (type === 'worksheet') newData.questions[idx].image_url = image_url;
+
       onUpdate({ ...content, content: newData });
     } catch (err) {
       toast({ title: "Image regeneration failed", variant: "destructive" });
@@ -649,8 +694,7 @@ function ResourcePreview({ content, type, mode, onUpdate }: { content: any, type
                 className="absolute top-2 right-2 opacity-0 group-hover/img:opacity-100 transition-opacity rounded-full shadow-lg"
                 onClick={() => {
                   const editedText = mode === "ar" ? step.text_ar : step.text_en;
-                  const prompt = `Widgit/PCS style symbol of ${editedText}, simple vector, thick bold outlines, flat colors, white background, no shading`;
-                  handleRegenerateImage(idx, prompt);
+                  handleRegenerateImage(idx, editedText);
                 }}
                 disabled={regenerating === idx}
               >
@@ -662,18 +706,24 @@ function ResourcePreview({ content, type, mode, onUpdate }: { content: any, type
               "grid gap-8 border-t border-slate-100 pt-6 relative group",
               mode === "bilingual" ? "grid-cols-2" : "grid-cols-1"
             )}>
-              <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400">
+              <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 cursor-pointer"
+                onClick={() => document.getElementById(`text-step-${idx}`)?.focus()}>
                 <Pencil className="w-3.5 h-3.5" />
               </div>
               {(mode === "en" || mode === "bilingual") && (
                 <div className="space-y-2">
                   <span className="text-[10px] font-bold uppercase opacity-50">English</span>
                   <p
+                    id={`text-step-${idx}`}
                     className="leading-relaxed outline-none border border-transparent hover:border-slate-100 p-1 rounded transition-all"
                     style={{ fontSize: '1.25em' }}
                     contentEditable
                     suppressContentEditableWarning
-                    onBlur={(e) => handleUpdateField(['steps', idx.toString(), 'text_en'], e.currentTarget.innerText)}
+                    onBlur={(e) => {
+                      const val = e.currentTarget.innerText;
+                      handleUpdateField(['steps', idx.toString(), 'text_en'], val);
+                      if (val) handleRegenerateImage(idx, val); // Auto-regenerate
+                    }}
                   >
                     {step.text_en || step.text}
                   </p>
@@ -716,6 +766,16 @@ function ResourcePreview({ content, type, mode, onUpdate }: { content: any, type
                 ) : (
                   <LayoutGrid className="w-12 h-12 opacity-10" />
                 )}
+                {/* PECS Sequential Numbering */}
+                <div className="absolute top-3 left-4 w-6 h-6 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-[10px] font-bold z-10">
+                  {idx + 1}
+                </div>
+                {/* Flow Arrow */}
+                {idx < data.cards.length - 1 && (
+                  <div className="absolute -right-6 top-1/2 -translate-y-1/2 z-20 text-slate-200 pointer-events-none hidden sm:block">
+                    <ArrowRight className="w-6 h-6" />
+                  </div>
+                )}
               </div>
               <Button
                 size="icon"
@@ -723,23 +783,28 @@ function ResourcePreview({ content, type, mode, onUpdate }: { content: any, type
                 className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity rounded-full p-1 h-7 w-7"
                 onClick={() => {
                   const editedLabel = mode === "ar" ? card.label_ar : card.label_en;
-                  const prompt = `Widgit/PCS style symbol of ${editedLabel}, single isolated object, simple vector, thick bold outlines, flat colors, white background, no shading`;
-                  handleRegenerateImage(idx, prompt);
+                  handleRegenerateImage(idx, editedLabel);
                 }}
                 disabled={regenerating === idx}
               >
                 <RefreshCcw className={cn("w-3 h-3", regenerating === idx && "animate-spin")} />
               </Button>
               <div className="w-full border-t border-slate-100 pt-4 mt-2 grid grid-cols-1 gap-2 relative group">
-                <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400">
+                <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 cursor-pointer"
+                  onClick={() => document.getElementById(`text-card-${idx}`)?.focus()}>
                   <Pencil className="w-2.5 h-2.5" />
                 </div>
                 {(mode === "en" || mode === "bilingual") && (
                   <p
+                    id={`text-card-${idx}`}
                     className="text-xs font-bold text-slate-500 uppercase outline-none"
                     contentEditable
                     suppressContentEditableWarning
-                    onBlur={(e) => handleUpdateField(['cards', idx.toString(), 'label_en'], e.currentTarget.innerText)}
+                    onBlur={(e) => {
+                      const val = e.currentTarget.innerText;
+                      handleUpdateField(['cards', idx.toString(), 'label_en'], val);
+                      if (val) handleRegenerateImage(idx, val);
+                    }}
                   >
                     {card.label_en || card.label}
                   </p>

@@ -14,45 +14,31 @@ export const imageModel = genAI?.getGenerativeModel({
 }, { apiVersion: "v1beta" });
 
 if (!genAI) {
-    console.log("Warning: GEMINI_API_KEY not found in environment variables.");
+    console.log("[AI] Warning: GEMINI_API_KEY not found.");
 } else {
-    console.log("Gemini AI successfully initialized (shared module).");
+    console.log("[AI] System initialized.");
 }
 
 export async function generateAIImage(prompt: string): Promise<string | null> {
-    if (!imageModel) {
-        console.log("AI Image Test: imageModel not initialized.");
-        return null;
-    }
+    if (!imageModel) return null;
+
     try {
-        console.log(`AI Image Test: Requesting generation for prompt: "${prompt}"`);
+        console.log(`[AI Image] Request: "${prompt.substring(0, 100)}..."`); // Log prompt (truncated)
         const result = await imageModel.generateContent(prompt);
         const response = await result.response;
-
-        // Log the structure to see what we get
-        console.log("AI Image Test: Full Response received from API.");
-
         const candidates = response.candidates;
-        if (!candidates || candidates.length === 0) {
-            console.log("AI Image Test: No candidates in response.");
-            return null;
-        }
+
+        if (!candidates || candidates.length === 0) return null;
 
         const parts = candidates[0].content?.parts;
         const imagePart = parts?.find(p => p.inlineData);
 
         if (imagePart?.inlineData) {
-            const data = imagePart.inlineData.data;
-            const mimeType = imagePart.inlineData.mimeType;
-            console.log(`AI Image Test: Success! MIME: ${mimeType}, Data size: ${data.length}`);
-            return `data:${mimeType};base64,${data}`;
-        } else {
-            console.log("AI Image Test: No inlineData (image) found in parts.");
-            // Log parts for debugging if it failed
-            console.log("AI Image Test: Parts keys:", parts?.map(p => Object.keys(p)));
+            console.log("[AI Image] Status: Success");
+            return `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
         }
     } catch (err) {
-        console.error("AI Image Test: Error during generation:", err);
+        console.error("[AI Image] Status: Error", err);
     }
     return null;
 }
