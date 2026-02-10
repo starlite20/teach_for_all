@@ -206,14 +206,19 @@ export function StudentForm({ student, trigger, open: externalOpen, onOpenChange
             <Label className="font-bold text-slate-700 ml-1">AET Target Areas</Label>
             <div className="grid grid-cols-1 gap-2 p-4 bg-white/40 rounded-3xl border border-slate-100/50">
               {AET_AREAS.map((area) => (
-                <div key={area} className="flex items-center space-x-3 group cursor-pointer" onClick={() => toggleGoal(area)}>
+                <div key={area} className="flex items-center space-x-3 group">
                   <Checkbox
+                    id={`area-${area}`}
                     checked={selectedGoals.includes(area)}
+                    onCheckedChange={() => toggleGoal(area)}
                     className="rounded-md"
                   />
-                  <span className="text-sm font-medium text-slate-600 group-hover:text-primary transition-colors">
+                  <label
+                    htmlFor={`area-${area}`}
+                    className="text-sm font-medium text-slate-600 group-hover:text-primary transition-colors cursor-pointer"
+                  >
                     {area}
-                  </span>
+                  </label>
                 </div>
               ))}
             </div>
