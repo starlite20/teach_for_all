@@ -93,8 +93,15 @@ html {
   }
 
   .font-dyslexic {
-    font-family: 'Lexend', sans-serif !important;
+    font-family: 'OpenDyslexic', 'Lexend', sans-serif !important;
   }
+}
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('/fonts/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
 }
 
 /* Smooth transitions */

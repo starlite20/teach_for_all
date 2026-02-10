@@ -8,6 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Loader2, Library as LibraryIcon, Search, GraduationCap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ResourcePreview } from "@/components/resources/ResourcePreview";
+import { Sparkles, Printer } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import { cn } from "@/lib/utils";
 
 const container = {
   hidden: { opacity: 0 },
@@ -132,21 +138,92 @@ function ResourceList({ studentId }: { studentId: number }) {
       </div>
 
       <Dialog open={!!selectedResource} onOpenChange={(open) => !open && setSelectedResource(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0 rounded-[3rem] border-none shadow-2xl">
+        <DialogContent className="max-w-6xl w-full h-[90vh] overflow-hidden p-0 rounded-[3rem] border-none shadow-2xl flex flex-col">
           {selectedResource && (
-            <div className="flex flex-col h-full bg-slate-50">
+            <div className="flex flex-col h-full bg-slate-50 relative">
               <div className="p-8 bg-white border-b border-slate-100 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-primary uppercase tracking-widest block mb-2">Resource Viewer</span>
                   <h2 className="text-3xl font-bold font-display text-slate-900">{selectedResource.title}</h2>
                 </div>
+                <Button
+                  onClick={async () => {
+                    const element = document.getElementById("library-printable-resource");
+                    if (!element) return;
+                    try {
+                      const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#FFFFFF' });
+                      const imgData = canvas.toDataURL("image/png");
+                      const pdf = new jsPDF("p", "mm", "a4");
+                      const pdfWidth = pdf.internal.pageSize.getWidth();
+                      const pdfHeight = pdf.internal.pageSize.getHeight();
+                      const imgHeight = canvas.height * pdfWidth / canvas.width;
+                      let heightLeft = imgHeight;
+                      let position = 0;
+
+                      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+                      heightLeft -= pdfHeight;
+
+                      while (heightLeft > 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+                        heightLeft -= pdfHeight;
+                      }
+                      pdf.save(`${selectedResource.title}.pdf`);
+                    } catch (e) { console.error(e); }
+                  }}
+                >
+                  <Printer className="w-4 h-4 mr-2" />
+                  Print PDF
+                </Button>
               </div>
               <div className="flex-1 overflow-y-auto p-8 md:p-12">
-                <div className="bg-white p-10 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
-                  <pre className="whitespace-pre-wrap font-sans text-lg text-slate-700 leading-relaxed">
-                    {/* In a real app, reuse the ResourcePreview component from Generator.tsx */}
-                    {JSON.stringify(selectedResource.content, null, 2)}
-                  </pre>
+                <div
+                  id="library-printable-resource"
+                  className={cn(
+                    "bg-white text-slate-900 shadow-2xl p-[20mm] flex flex-col rounded-sm transition-all duration-300 origin-top mx-auto",
+                    // Use settings from content if available, else default
+                    selectedResource.content?.settings?.fontFamily || "font-sans"
+                  )}
+                  style={{
+                    width: "210mm",
+                    minHeight: "297mm",
+                    fontSize: `${selectedResource.content?.settings?.fontSize || 18}px`,
+                    lineHeight: selectedResource.content?.settings?.lineHeight || "1.5",
+                    transformOrigin: "top center",
+                    marginBottom: "-30mm",
+                    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+                  }}
+                >
+                  {/* Header */}
+                  <div className="pb-6 mb-10 flex justify-between items-center border-b-2 border-slate-100">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-white shadow-sm">
+                        <Sparkles className="w-7 h-7" />
+                      </div>
+                      <div>
+                        <h1 className="text-2xl font-bold text-slate-900 leading-none mb-1">{selectedResource.title}</h1>
+                        <p className="text-lg font-medium text-slate-500">Student Resource</p>
+                      </div>
+                    </div>
+                    <div className="text-right opacity-50">
+                      <p className="text-xs font-bold uppercase tracking-widest">TeachForAll</p>
+                      <p className="text-[10px]">{new Date(selectedResource.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+
+                  <ResourcePreview
+                    content={selectedResource.content}
+                    type={selectedResource.type}
+                    mode={selectedResource.language || "en"}
+                    onUpdate={() => { }} // Read-only in library
+                  />
+
+                  {/* Footer */}
+                  <div className="mt-auto pt-8 border-t border-slate-100 text-[10px] italic flex justify-between opacity-50">
+                    <span>Generated by TeachForAll | Library ID: {selectedResource.id}</span>
+                    <span>{new Date().toLocaleDateString()}</span>
+                  </div>
                 </div>
               </div>
             </div>

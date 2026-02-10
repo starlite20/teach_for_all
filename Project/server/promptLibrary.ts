@@ -60,20 +60,25 @@ JSON structure:
 } (Strictly 6 cards)`;
     }
 
-    // Worksheet / Task Analysis
-    return `Task: Visual Worksheet for "${topic}".
+    // Worksheet / Choice Selection
+    return `Task: Choice Selection Worksheet for "${topic}".
 JSON structure:
 { 
-  "title": "Visual Activity", 
-  "instructions": "Simple instruction using ${student.primaryInterest}",
+  "title": "Topic: ${topic}", 
+  "instructions": "Tick the correct option.",
   "questions": [
     {
-      "text_en": "Specific question about ${topic}?", 
-      "text_ar": "Arabic question?",
-      "image_prompt": "${symbolStyle}, visual cue for: [Subject]"
+      "text_en": "Which one is [Target]?", 
+      "text_ar": "Arabic translation...",
+      "choices": [
+        { "label": "Option 1", "image_prompt": "${symbolStyle}, vector icon of [Option 1]" },
+        { "label": "Option 2", "image_prompt": "${symbolStyle}, vector icon of [Option 2]" },
+        { "label": "Option 3", "image_prompt": "${symbolStyle}, vector icon of [Option 3]" }
+      ],
+      "correct_answer_index": 0
     }
   ] 
-} (Strictly 3 questions)`;
+} (Strictly 3 questions, each with 3 visual choices)`;
 };
 
 export const getRegenerationPrompt = (text: string, type: 'story' | 'pecs' | 'symbol') => {

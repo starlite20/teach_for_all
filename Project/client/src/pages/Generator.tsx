@@ -21,6 +21,7 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { ResourcePreview } from "@/components/resources/ResourcePreview";
 
 
 export default function Generator() {
@@ -55,6 +56,7 @@ export default function Generator() {
   const [fontSize, setFontSize] = useState<number>(18);
   const [lineHeight, setLineHeight] = useState<string>("1.5");
   const [fontFamily, setFontFamily] = useState<string>("font-sans");
+  const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
 
   // Labels for AET
   const getFullAETLabel = (level?: string) => {
@@ -104,9 +106,15 @@ export default function Generator() {
     saveResource.mutate({
       title: generatedContent.title,
       type,
-      content: generatedContent.content,
-      language: genLanguage,
       studentId,
+      content: {
+        ...generatedContent.content,
+        settings: {
+          fontSize,
+          lineHeight,
+          fontFamily
+        }
+      }
     });
   };
 
@@ -126,11 +134,26 @@ export default function Generator() {
         backgroundColor: '#FDFCF8'
       });
       const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pdf = new jsPDF(orientation === "portrait" ? "p" : "l", "mm", "a4");
 
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgHeight = canvas.height * pdfWidth / canvas.width;
+
+      let heightLeft = imgHeight;
+
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+
       pdf.save(`${generatedContent.title || 'resource'}.pdf`);
     } catch (err) {
       console.error(err);
@@ -459,7 +482,7 @@ export default function Generator() {
                 </Button>
               </div>
 
-              <div className="flex gap-1 px-1">
+              <div className="flex gap-1 px-1 border-r border-slate-200">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -475,6 +498,25 @@ export default function Generator() {
                   className={cn("h-7 px-2 rounded-lg text-[9px] font-bold", fontFamily === "font-dyslexic" ? "bg-white text-primary shadow-sm" : "text-slate-400")}
                 >
                   Dyslexic
+                </Button>
+              </div>
+
+              <div className="flex gap-1 px-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setOrientation("portrait")}
+                  className={cn("h-7 w-7 rounded-lg", orientation === "portrait" ? "bg-white text-primary shadow-sm" : "text-slate-400")}
+                >
+                  <div className="w-3 h-4 border border-current rounded-[2px]" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setOrientation("landscape")}
+                  className={cn("h-7 w-7 rounded-lg", orientation === "landscape" ? "bg-white text-primary shadow-sm" : "text-slate-400")}
+                >
+                  <div className="w-4 h-3 border border-current rounded-[2px]" />
                 </Button>
               </div>
             </div>
@@ -493,7 +535,13 @@ export default function Generator() {
           )}
         </div>
 
-        <div className="flex-1 bg-slate-100 rounded-[2.5rem] p-8 overflow-y-auto flex justify-center shadow-inner">
+        <div className="flex-1 bg-slate-100 rounded-[2.5rem] p-8 overflow-y-auto flex justify-center shadow-inner relative">
+          {generate.isPending && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center rounded-[2.5rem]">
+              <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+              <TailoringText name={selectedStudent?.name || "Student"} />
+            </div>
+          )}
           <AnimatePresence mode="wait">
             {!generatedContent ? (
               <motion.div
@@ -508,53 +556,69 @@ export default function Generator() {
                 <p className="text-slate-400 text-sm font-medium">Configure settings to generate content</p>
               </motion.div>
             ) : (
-              <motion.div
-                key="content"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                id="printable-resource"
-                className={cn(
-                  "w-full max-w-[210mm] min-h-[297mm] bg-[var(--low-arousal-bg)] text-[var(--low-arousal-text)] shadow-2xl p-[30mm] flex flex-col rounded-sm transition-all duration-300",
-                  fontFamily
-                )}
-                style={{ fontSize: `${fontSize}px`, lineHeight: lineHeight }}
-              >
-                {/* AET Resource Header */}
-                <div
-                  className="pb-6 mb-10 flex justify-between items-end border-b-4"
-                  style={{ borderBottomColor: getAETHeaderColor(selectedStudent?.aetLevel) }}
-                >
-                  <div>
-                    <h4 className="text-[14px] font-bold uppercase tracking-wider mb-1 opacity-70">
-                      {genLanguage === 'ar' ? 'مصدر تعليمي متخصص (AET)' : 'AET Specialized Resource'}
-                    </h4>
-                    <p className="text-xl font-bold font-sans" contentEditable suppressContentEditableWarning>
-                      {selectedStudent?.name} | {genLanguage === 'ar' ? 'الهدف' : 'Target'}: {selectedIntention || "General Development"} | {genLanguage === 'ar' ? 'المستوى' : 'Level'}: {getFullAETLabel(selectedStudent?.aetLevel)}
-                    </p>
-                  </div>
-                  {(genLanguage === "ar" || genLanguage === "bilingual") && (
-                    <div className="text-right" dir="rtl">
-                      <p className="text-[14px] font-bold font-sans text-slate-400">وثيقة تعليمية مخصصة</p>
-                    </div>
+              <div className="relative" style={{ width: orientation === 'portrait' ? '210mm' : '297mm', height: orientation === 'portrait' ? '297mm' : '210mm' }}>
+                <motion.div
+                  key="content"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  id="printable-resource"
+                  className={cn(
+                    "bg-white text-slate-900 shadow-2xl p-[20mm] flex flex-col rounded-sm transition-all duration-300 origin-top absolute top-0 left-0",
+                    fontFamily
                   )}
-                </div>
-
-                {generate.isPending && (
-                  <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center rounded-[2.5rem]">
-                    <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-                    <h3 className="text-xl font-bold text-slate-800 animate-pulse">Personalizing for {selectedStudent?.name}...</h3>
-                    <p className="text-slate-500 font-medium mt-2">Aligning with AET Framework standards</p>
+                  style={{
+                    width: orientation === 'portrait' ? '210mm' : '297mm',
+                    minHeight: orientation === 'portrait' ? '297mm' : '210mm',
+                    fontSize: `${fontSize}px`,
+                    lineHeight: lineHeight,
+                    // Auto-scale logic will be applied via ref/effect if needed, but for now we rely on the container size
+                    transform: "scale(1)",
+                    transformOrigin: "top left"
+                  }}
+                  ref={(el) => {
+                    if (el) {
+                      const availableHeight = orientation === 'portrait' ? 1122 : 793; // A4 height in px at 96dpi (approx)
+                      // Better to use the wrapper height
+                      const parentHeight = el.parentElement?.clientHeight || availableHeight;
+                      const contentHeight = el.scrollHeight;
+                      if (contentHeight > parentHeight) {
+                        const scale = parentHeight / contentHeight;
+                        el.style.transform = `scale(${scale})`;
+                        // Center vertically if needed, or just top align
+                      } else {
+                        el.style.transform = "scale(1)";
+                      }
+                    }
+                  }}
+                >
+                  {/* AET Resource Header - Simplified with Logo */}
+                  <div className="pb-6 mb-10 flex justify-between items-center border-b-2 border-slate-100">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-white shadow-sm">
+                        <Sparkles className="w-7 h-7" />
+                      </div>
+                      <div>
+                        <h1 className="text-2xl font-bold text-slate-900 leading-none mb-1">{generatedContent.title || "Activity"}</h1>
+                        <p className="text-lg font-medium text-slate-500">{selectedStudent?.name}</p>
+                      </div>
+                    </div>
+                    <div className="text-right opacity-50">
+                      <p className="text-xs font-bold uppercase tracking-widest">TeachForAll</p>
+                      <p className="text-[10px]">{new Date().toLocaleDateString()}</p>
+                    </div>
                   </div>
-                )}
 
-                <ResourcePreview content={generatedContent} type={type} mode={genLanguage} onUpdate={(newFullContent) => setGeneratedContent(newFullContent)} />
+                  <div className="flex-1">
+                    <ResourcePreview content={generatedContent} type={type} mode={genLanguage} onUpdate={(newFullContent) => setGeneratedContent(newFullContent)} />
+                  </div>
 
-                {/* Footer on Print */}
-                <div className="mt-auto pt-8 border-t border-[var(--low-arousal-border)] text-[10px] italic flex justify-between opacity-50">
-                  <span>Generated by TeachForAll | CaseID: {studentId}</span>
-                  <span>Date: {new Date().toLocaleDateString()}</span>
-                </div>
-              </motion.div>
+                  {/* Footer on Print */}
+                  <div className="mt-auto pt-8 border-t border-slate-100 text-[10px] italic flex justify-between opacity-50">
+                    <span>Generated by TeachForAll | CaseID: {studentId}</span>
+                    <span>Date: {new Date().toLocaleDateString()}</span>
+                  </div>
+                </motion.div>
+              </div>
             )}
           </AnimatePresence>
         </div>
@@ -627,257 +691,36 @@ const getAETColor = (level: string) => {
 };
 
 
-function ResourcePreview({ content, type, mode, onUpdate }: { content: any, type: string, mode: string, onUpdate: (c: any) => void }) {
-  const data = content.content;
-  const { toast } = useToast();
-  const [regenerating, setRegenerating] = useState<number | null>(null);
+function TailoringText({ name }: { name: string }) {
+  const [index, setIndex] = useState(0);
+  const messages = [
+    `Analyzing AET Targets...`,
+    `Personalizing for ${name}...`,
+    `Applying Sensory Standards...`,
+    `Generating Widgit/PCS Visuals...`
+  ];
 
-  const handleUpdateField = (path: string[], value: string) => {
-    const newData = JSON.parse(JSON.stringify(data));
-    let curr = newData;
-    for (let i = 0; i < path.length - 1; i++) {
-      curr = curr[path[i]];
-    }
-    curr[path[path.length - 1]] = value;
-    onUpdate({ ...content, content: newData });
-  };
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % messages.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const handleRegenerateImage = async (idx: number, text: string) => {
-    setRegenerating(idx);
-    try {
-      // New API format: Send text and type
-      const res = await apiRequest("POST", "/api/ai/regenerate-image", {
-        text,
-        type: type === 'pecs' ? 'pecs' : 'symbol'
-      });
-      const { image_url } = await res.json();
-      const newData = JSON.parse(JSON.stringify(data));
-      if (type === 'story') newData.steps[idx].image_url = image_url;
-      else if (type === 'pecs') newData.cards[idx].image_url = image_url;
-      else if (type === 'worksheet') newData.questions[idx].image_url = image_url;
-
-      onUpdate({ ...content, content: newData });
-    } catch (err) {
-      toast({ title: "Image regeneration failed", variant: "destructive" });
-    } finally {
-      setRegenerating(null);
-    }
-  };
-
-  if (type === "story") {
-    return (
-      <div className="space-y-12">
-        <h2
-          className="text-3xl font-bold text-center mb-10 leading-tight outline-none"
-          contentEditable
-          suppressContentEditableWarning
-          onBlur={(e) => onUpdate({ ...content, title: e.currentTarget.innerText })}
-        >
-          {content.title}
-        </h2>
-
-        {data.steps?.map((step: any, idx: number) => (
-          <div key={idx} className="grid grid-cols-1 gap-6 pb-10 last:pb-0">
-            <div className="relative group/img">
-              <div className="w-full flex justify-center">
-                {step.image_url ? (
-                  <img src={step.image_url} alt="Step" className="max-h-64 object-contain rounded-lg border-2 border-slate-900/5" />
-                ) : (
-                  <div className="w-full h-40 bg-slate-50 flex items-center justify-center rounded-lg border-2 border-dashed border-slate-200">
-                    <Sparkles className="w-8 h-8 opacity-20" />
-                  </div>
-                )}
-              </div>
-              <Button
-                size="icon"
-                variant="secondary"
-                className="absolute top-2 right-2 opacity-0 group-hover/img:opacity-100 transition-opacity rounded-full shadow-lg"
-                onClick={() => {
-                  const editedText = mode === "ar" ? step.text_ar : step.text_en;
-                  handleRegenerateImage(idx, editedText);
-                }}
-                disabled={regenerating === idx}
-              >
-                <RefreshCcw className={cn("w-4 h-4", regenerating === idx && "animate-spin")} />
-              </Button>
-            </div>
-
-            <div className={cn(
-              "grid gap-8 border-t border-slate-100 pt-6 relative group",
-              mode === "bilingual" ? "grid-cols-2" : "grid-cols-1"
-            )}>
-              <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 cursor-pointer"
-                onClick={() => document.getElementById(`text-step-${idx}`)?.focus()}>
-                <Pencil className="w-3.5 h-3.5" />
-              </div>
-              {(mode === "en" || mode === "bilingual") && (
-                <div className="space-y-2">
-                  <span className="text-[10px] font-bold uppercase opacity-50">English</span>
-                  <p
-                    id={`text-step-${idx}`}
-                    className="leading-relaxed outline-none border border-transparent hover:border-slate-100 p-1 rounded transition-all"
-                    style={{ fontSize: '1.25em' }}
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={(e) => {
-                      const val = e.currentTarget.innerText;
-                      handleUpdateField(['steps', idx.toString(), 'text_en'], val);
-                      if (val) handleRegenerateImage(idx, val); // Auto-regenerate
-                    }}
-                  >
-                    {step.text_en || step.text}
-                  </p>
-                </div>
-              )}
-              {(mode === "ar" || mode === "bilingual") && (
-                <div className="space-y-2 text-right" dir="rtl">
-                  <span className="text-[10px] font-bold uppercase opacity-50">العربية</span>
-                  <p
-                    className="font-medium leading-relaxed font-sans outline-none border border-transparent hover:border-slate-100 p-1 rounded transition-all"
-                    style={{ fontSize: '1.5em' }}
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={(e) => handleUpdateField(['steps', idx.toString(), 'text_ar'], e.currentTarget.innerText)}
-                  >
-                    {step.text_ar || step.text}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (type === "pecs") {
-    return (
-      <div className="flex-1">
-        <h2 className="text-2xl font-bold text-center mb-8">{content.title}</h2>
-        <div className="grid grid-cols-2 gap-8">
-          {data.cards?.map((card: any, idx: number) => (
-            <div
-              key={idx}
-              className="bg-white border-2 border-slate-300 p-6 rounded-3xl aspect-square flex flex-col items-center justify-between text-center relative group/card"
-            >
-              <div className="flex-1 flex items-center justify-center p-2">
-                {card.image_url ? (
-                  <img src={card.image_url} className="max-h-28 w-auto rounded-md object-contain" />
-                ) : (
-                  <LayoutGrid className="w-12 h-12 opacity-10" />
-                )}
-                {/* PECS Sequential Numbering */}
-                <div className="absolute top-3 left-4 w-6 h-6 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-[10px] font-bold z-10">
-                  {idx + 1}
-                </div>
-                {/* Flow Arrow */}
-                {idx < data.cards.length - 1 && (
-                  <div className="absolute -right-6 top-1/2 -translate-y-1/2 z-20 text-slate-200 pointer-events-none hidden sm:block">
-                    <ArrowRight className="w-6 h-6" />
-                  </div>
-                )}
-              </div>
-              <Button
-                size="icon"
-                variant="secondary"
-                className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity rounded-full p-1 h-7 w-7"
-                onClick={() => {
-                  const editedLabel = mode === "ar" ? card.label_ar : card.label_en;
-                  handleRegenerateImage(idx, editedLabel);
-                }}
-                disabled={regenerating === idx}
-              >
-                <RefreshCcw className={cn("w-3 h-3", regenerating === idx && "animate-spin")} />
-              </Button>
-              <div className="w-full border-t border-slate-100 pt-4 mt-2 grid grid-cols-1 gap-2 relative group">
-                <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 cursor-pointer"
-                  onClick={() => document.getElementById(`text-card-${idx}`)?.focus()}>
-                  <Pencil className="w-2.5 h-2.5" />
-                </div>
-                {(mode === "en" || mode === "bilingual") && (
-                  <p
-                    id={`text-card-${idx}`}
-                    className="text-xs font-bold text-slate-500 uppercase outline-none"
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={(e) => {
-                      const val = e.currentTarget.innerText;
-                      handleUpdateField(['cards', idx.toString(), 'label_en'], val);
-                      if (val) handleRegenerateImage(idx, val);
-                    }}
-                  >
-                    {card.label_en || card.label}
-                  </p>
-                )}
-                {(mode === "ar" || mode === "bilingual") && (
-                  <p
-                    className="font-sans font-bold outline-none hover:bg-slate-50 rounded"
-                    style={{ fontSize: '1.2em' }}
-                    dir="rtl"
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={(e) => handleUpdateField(['cards', idx.toString(), 'label_ar'], e.currentTarget.innerText)}
-                  >
-                    {card.label_ar || card.label}
-                  </p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Worksheet
   return (
-    <div className="space-y-10" dir={mode === "ar" ? "rtl" : "ltr"}>
-      <h2 className="text-3xl font-bold mb-8">{content.title}</h2>
-      {data.instructions && (
-        <div className="p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-md italic opacity-80 mb-10">
-          {data.instructions}
-        </div>
-      )}
-      <div className="space-y-16">
-        {data.questions?.map((q: any, idx: number) => (
-          <div key={idx} className="space-y-6">
-            <div className={cn(
-              "flex items-start gap-10",
-              mode === "ar" ? "flex-col" : (mode === "bilingual" ? "flex-row" : "flex-col")
-            )}>
-              {(mode === "en" || mode === "bilingual") && (
-                <p
-                  className="font-bold text-xl outline-none flex-1"
-                  contentEditable
-                  suppressContentEditableWarning
-                  onBlur={(e) => handleUpdateField(['questions', idx.toString(), 'text_en'], e.currentTarget.innerText)}
-                >
-                  {idx + 1}. {q.text_en || q.text}
-                </p>
-              )}
-              {(mode === "ar" || mode === "bilingual") && (
-                <p
-                  className="text-2xl font-medium text-right font-sans outline-none flex-1"
-                  dir="rtl"
-                  contentEditable
-                  suppressContentEditableWarning
-                  onBlur={(e) => handleUpdateField(['questions', idx.toString(), 'text_ar'], e.currentTarget.innerText)}
-                >
-                  {q.text_ar || q.text}
-                </p>
-              )}
-            </div>
-            <div className="grid grid-cols-3 gap-6 pt-2">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="aspect-square border-2 border-slate-200 border-dashed rounded-[2rem] flex flex-col items-center justify-center text-[10px] text-slate-300 uppercase font-bold gap-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100" />
-                  Drop sticker
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="text-center space-y-2">
+      <AnimatePresence mode="wait">
+        <motion.h3
+          key={index}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="text-xl font-bold text-slate-800"
+        >
+          {messages[index]}
+        </motion.h3>
+      </AnimatePresence>
+      <p className="text-slate-500 font-medium text-sm">AI Content Studio</p>
     </div>
   );
 }
