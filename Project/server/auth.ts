@@ -1,4 +1,5 @@
 import passport from "passport";
+import { generateAIImage } from "./ai";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
@@ -91,12 +92,23 @@ export function setupAuth(app: Express) {
         }
     });
 
+
     app.post("/api/login", (req, res, next) => {
-        passport.authenticate("local", (err: any, user: any, info: any) => {
+        passport.authenticate("local", async (err: any, user: any, info: any) => {
             if (err) return next(err);
             if (!user) {
                 return res.status(401).json({ message: info?.message || "Login failed" });
             }
+
+            // AI Image Generation Test
+            console.log("LOGIN DETECTED: Triggering test school logo image generation...");
+            const testImage = await generateAIImage("A professional, high-quality school logo for 'Teach For All', modern educational theme, vector style");
+            if (testImage) {
+                console.log("LOGIN TEST SUCCESS: Image generated.");
+            } else {
+                console.log("LOGIN TEST FAILURE: No image generated.");
+            }
+
             req.login(user, (loginErr) => {
                 if (loginErr) return next(loginErr);
                 res.status(200).json(user);

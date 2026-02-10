@@ -4,43 +4,8 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { geminiModel, generateAIImage } from "./ai";
 import { insertStudentSchema, insertResourceSchema } from "@shared/schema";
-
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null;
-
-// Use v1beta for gemini-3-flash-preview
-const geminiModel = genAI?.getGenerativeModel({
-  model: "gemini-3-flash-preview"
-}, { apiVersion: "v1beta" });
-
-if (!genAI) {
-  console.log("Warning: GEMINI_API_KEY not found in environment variables.");
-} else {
-  console.log("Gemini AI successfully initialized (using gemini-3-flash-preview).");
-}
-
-const imageModel = genAI?.getGenerativeModel({
-  model: "gemini-3-pro-image-preview"
-}, { apiVersion: "v1beta" });
-
-async function generateAIImage(prompt: string): Promise<string | null> {
-  if (!imageModel) return null;
-  try {
-    const result = await imageModel.generateContent(prompt);
-    const response = await result.response;
-    const parts = response.candidates?.[0]?.content?.parts;
-    const imagePart = parts?.find(p => p.inlineData);
-    if (imagePart?.inlineData) {
-      return `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
-    }
-  } catch (err) {
-    console.error("Image generation failed for prompt:", prompt, err);
-  }
-  return null;
-}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -171,6 +136,7 @@ export async function registerRoutes(
 
       const prompt = `${systemPrompt}\n\n${formatPrompt}\n\nStrictly return only JSON. No markdown formatting.`;
 
+      console.log(`Generating text content for ${type} (topic: ${topic})...`);
       const result = await geminiModel.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: { responseMimeType: "application/json" }
@@ -178,32 +144,54 @@ export async function registerRoutes(
 
       const response = await result.response;
       const text = response.text();
+      console.log("Text generation completed.");
 
       // Attempt to clean text if it contains markdown blocks
       const cleanJson = text.replace(/```json|```/g, "").trim();
       const content = JSON.parse(cleanJson);
 
-      // Generate images for story steps or PECS cards
+      // Generate images for story steps or PECS cards (SEQUENTIALLY)
       if (type === 'story' && content.steps) {
-        await Promise.all(content.steps.map(async (step: any) => {
+        console.log(`Generating ${content.steps.length} images for Social Story steps sequentially...`);
+        for (let i = 0; i < content.steps.length; i++) {
+          const step = content.steps[i];
           if (step.image_prompt) {
+            console.log(`Step ${i + 1}: Generating image for prompt: "${step.image_prompt}"`);
             step.image_url = await generateAIImage(step.image_prompt);
+            if (step.image_url) {
+              console.log(`Step ${i + 1}: Image generated successfully (base64 length: ${step.image_url.length})`);
+              console.log(`Step ${i + 1}: Image Data Start: ${step.image_url.substring(0, 100)}...`);
+            } else {
+              console.log(`Step ${i + 1}: Image generation failed.`);
+            }
           }
-        }));
+        }
       } else if (type === 'pecs' && content.cards) {
-        await Promise.all(content.cards.map(async (card: any) => {
+        console.log(`Generating ${content.cards.length} images for PECS cards sequentially...`);
+        for (let i = 0; i < content.cards.length; i++) {
+          const card = content.cards[i];
           if (card.image_prompt) {
+            console.log(`Card ${i + 1}: Generating image for prompt: "${card.image_prompt}"`);
             card.image_url = await generateAIImage(card.image_prompt);
+            if (card.image_url) {
+              console.log(`Card ${i + 1}: Image generated successfully (base64 length: ${card.image_url.length})`);
+              console.log(`Card ${i + 1}: Image Data Start: ${card.image_url.substring(0, 100)}...`);
+            } else {
+              console.log(`Card ${i + 1}: Image generation failed.`);
+            }
           }
-        }));
+        }
       }
 
-      res.json({
+      const finalResult = {
         title: content.title || topic || "Generated Resource",
         content: content,
         type,
         language
-      });
+      };
+
+      console.log("Final generated resource object:", JSON.stringify(finalResult, null, 2));
+      res.json(finalResult);
 
     } catch (error) {
       console.error("AI Generation Error:", error);

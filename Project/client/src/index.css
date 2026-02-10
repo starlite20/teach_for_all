@@ -1,46 +1,40 @@
-@import url('https://fonts.googleapis.com/css2?family=Architects+Daughter&family=DM+Sans:opsz,wght@9..40,400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Autism-Friendly Palette: Soft, calming, low arousal but distinct */
+  /* Premium Minimalist Palette */
+  --background: 220 33% 98%;
+  --foreground: 224 71% 4%;
   
-  /* Soft Blue - Primary Action */
-  --primary: 215 70% 65%;
-  --primary-foreground: 215 90% 98%;
-
-  /* Sage Green - Success/Positive */
-  --secondary: 150 40% 75%;
-  --secondary-foreground: 150 50% 15%;
-
-  /* Lilac - Creative/Accent */
-  --accent: 260 60% 85%;
-  --accent-foreground: 260 50% 20%;
-
-  /* Warm Sand - Background (avoid stark white) */
-  --background: 40 30% 98%;
-  --foreground: 215 30% 25%; /* Dark slate, softer than black */
-
-  /* Surface Colors */
   --card: 0 0% 100%;
-  --card-foreground: 215 30% 25%;
+  --card-foreground: 224 71% 4%;
+  
   --popover: 0 0% 100%;
-  --popover-foreground: 215 30% 25%;
-
-  /* UI Elements */
-  --muted: 215 20% 92%;
-  --muted-foreground: 215 20% 50%;
-  --border: 215 20% 90%;
-  --input: 215 20% 90%;
-  --ring: 215 70% 65%;
+  --popover-foreground: 224 71% 4%;
   
-  /* Status */
-  --destructive: 0 60% 70%; /* Soft red */
-  --destructive-foreground: 0 0% 100%;
+  --primary: 243 75% 59%; /* Modern Indigo */
+  --primary-foreground: 210 40% 98%;
   
-  --radius: 1rem; /* Friendly rounded corners */
+  --secondary: 160 84% 39%; /* Emerald */
+  --secondary-foreground: 210 40% 98%;
+  
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 46%;
+  
+  --accent: 262 83% 58%; /* Purple */
+  --accent-foreground: 210 40% 98%;
+  
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+  
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 243 75% 59%;
+  
+  --radius: 1.25rem;
 }
 
 @layer base {
@@ -49,32 +43,57 @@
   }
   
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/20;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 18px; /* Slightly larger base size for readability */
-    line-height: 1.6;
+    @apply bg-background text-foreground antialiased selection:bg-primary/10;
+    font-family: 'Inter', sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Architects Daughter', cursive; /* Friendly, approachable headers */
-    @apply font-bold tracking-tight text-foreground/90;
-  }
-
-  /* Clear focus rings for accessibility */
-  :focus-visible {
-    @apply outline-none ring-4 ring-primary/30 ring-offset-2;
+    font-family: 'Outfit', sans-serif;
+    @apply font-semibold tracking-tight;
   }
 }
 
-/* Custom scrollbar for a cleaner look */
+@layer utilities {
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl;
+  }
+  
+  .glass-dark {
+    @apply bg-slate-900/70 backdrop-blur-md border border-slate-800/20 shadow-xl;
+  }
+
+  .mesh-gradient {
+    background-color: hsla(220, 33%, 98%, 1);
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(243, 75%, 59%, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(262, 83%, 58%, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(160, 84%, 39%, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(243, 75%, 59%, 0.05) 0px, transparent 50%);
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-secondary;
+  }
+}
+
+/* Smooth transitions */
+* {
+  @apply transition-colors duration-200;
+}
+
+::selection {
+  @apply bg-primary/20 text-primary-foreground;
+}
+
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
+  @apply bg-muted-foreground/10 rounded-full hover:bg-muted-foreground/20;
 }
 
 /* Print styles for resources */
