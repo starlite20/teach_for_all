@@ -1,0 +1,7 @@
+Project/node_modules
+Project/dist
+Project/.DS_Store
+Project/server/public
+Project/vite.config.ts.*
+Project/*.tar.gz
+Project/.env

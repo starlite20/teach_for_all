@@ -8,7 +8,7 @@ export default function Landing() {
       <header className="px-6 py-6 flex items-center justify-between max-w-7xl mx-auto w-full">
         <h1 className="text-3xl font-bold font-display text-primary">AET Assist</h1>
         <Button asChild className="rounded-full px-6">
-          <a href="/api/login">Teacher Login</a>
+          <Link href="/auth">Teacher Login</Link>
         </Button>
       </header>
 
@@ -31,26 +31,26 @@ export default function Landing() {
 
         <div className="flex flex-col sm:flex-row gap-4 mb-20 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
           <Button asChild size="lg" className="text-lg px-8 py-6 rounded-full shadow-xl shadow-primary/25 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
-            <a href="/api/login">
+            <Link href="/auth">
               Get Started Free <ArrowRight className="ml-2 w-5 h-5" />
-            </a>
+            </Link>
           </Button>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 w-full text-left animate-in fade-in zoom-in duration-1000 delay-500">
-          <FeatureCard 
+          <FeatureCard
             icon={Brain}
             title="AET Aligned"
             description="Resources designed following Autism Education Trust guidelines for sensory and communication needs."
             color="bg-blue-100 text-blue-600"
           />
-          <FeatureCard 
+          <FeatureCard
             icon={Sparkles}
             title="AI Generated"
             description="Instantly generate personalized content tailored to each student's specific interests and abilities."
             color="bg-purple-100 text-purple-600"
           />
-          <FeatureCard 
+          <FeatureCard
             icon={Heart}
             title="Autism Friendly"
             description="Visual-first designs with calming colors, clear typography, and predictable layouts."

@@ -1,29 +1,58 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
+import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { insertStudentSchema, insertResourceSchema } from "@shared/schema";
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+const genAI = process.env.GEMINI_API_KEY
+  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  : null;
+
+// Use v1beta for gemini-3-flash-preview
+const geminiModel = genAI?.getGenerativeModel({
+  model: "gemini-3-flash-preview"
+}, { apiVersion: "v1beta" });
+
+if (!genAI) {
+  console.log("Warning: GEMINI_API_KEY not found in environment variables.");
+} else {
+  console.log("Gemini AI successfully initialized (using gemini-3-flash-preview).");
+}
+
+const imageModel = genAI?.getGenerativeModel({
+  model: "gemini-3-pro-image-preview"
+}, { apiVersion: "v1beta" });
+
+async function generateAIImage(prompt: string): Promise<string | null> {
+  if (!imageModel) return null;
+  try {
+    const result = await imageModel.generateContent(prompt);
+    const response = await result.response;
+    const parts = response.candidates?.[0]?.content?.parts;
+    const imagePart = parts?.find(p => p.inlineData);
+    if (imagePart?.inlineData) {
+      return `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
+    }
+  } catch (err) {
+    console.error("Image generation failed for prompt:", prompt, err);
+  }
+  return null;
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
   // Setup Auth
-  await setupAuth(app);
-  registerAuthRoutes(app);
+  setupAuth(app);
 
   // === STUDENTS ===
   app.get(api.students.list.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const userId = (req.user as any).claims.sub;
+    const userId = req.user!.id;
     const students = await storage.getStudents(userId);
     res.json(students);
   });
@@ -39,7 +68,7 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const input = insertStudentSchema.parse(req.body);
-      const userId = (req.user as any).claims.sub;
+      const userId = req.user!.id;
       const student = await storage.createStudent({ ...input, teacherId: userId });
       res.status(201).json(student);
     } catch (e) {
@@ -107,6 +136,10 @@ export async function registerRoutes(
       const student = await storage.getStudent(studentId);
       if (!student) return res.status(404).json({ message: "Student not found" });
 
+      if (!geminiModel) {
+        return res.status(503).json({ message: "AI services are currently unavailable (missing API key)" });
+      }
+
       const systemPrompt = `You are an expert special education teacher assisting a student with autism.
       Student Profile:
       - Name: ${student.name}
@@ -118,7 +151,7 @@ export async function registerRoutes(
 
       Language: ${language === 'ar' ? 'Arabic' : 'English'}
       Task: Generate a ${type} about "${topic || 'general daily skills'}".
-      Output Format: JSON only.
+      Output Format: Return valid JSON only.
       
       Constraints:
       - Use simple, direct language.
@@ -127,26 +160,44 @@ export async function registerRoutes(
       - If Arabic, ensure correct grammar and simple vocabulary.
       `;
 
-      let userPrompt = "";
+      let formatPrompt = "";
       if (type === 'story') {
-        userPrompt = `Create a Social Story. JSON structure: { "title": "...", "steps": [{"text": "...", "image_prompt": "..."}] }`;
+        formatPrompt = `Create a Social Story. JSON structure: { "title": "...", "steps": [{"text": "...", "image_prompt": "..."}] }`;
       } else if (type === 'worksheet') {
-        userPrompt = `Create a Worksheet. JSON structure: { "title": "...", "instructions": "...", "questions": [{"question": "...", "options": ["..."], "correct_answer": "..."}] }`;
+        formatPrompt = `Create a Worksheet. JSON structure: { "title": "...", "instructions": "...", "questions": [{"question": "...", "instructions": "...", "options": ["..."], "correct_answer": "..."}] }`;
       } else if (type === 'pecs') {
-        userPrompt = `Create a set of PECS cards. JSON structure: { "title": "...", "cards": [{"label": "...", "image_prompt": "..."}] }`;
+        formatPrompt = `Create a set of PECS cards. JSON structure: { "title": "...", "cards": [{"label": "...", "image_prompt": "..."}] }`;
       }
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-5.1",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        response_format: { type: "json_object" },
+      const prompt = `${systemPrompt}\n\n${formatPrompt}\n\nStrictly return only JSON. No markdown formatting.`;
+
+      const result = await geminiModel.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
       });
 
-      const content = JSON.parse(response.choices[0].message.content || "{}");
-      
+      const response = await result.response;
+      const text = response.text();
+
+      // Attempt to clean text if it contains markdown blocks
+      const cleanJson = text.replace(/```json|```/g, "").trim();
+      const content = JSON.parse(cleanJson);
+
+      // Generate images for story steps or PECS cards
+      if (type === 'story' && content.steps) {
+        await Promise.all(content.steps.map(async (step: any) => {
+          if (step.image_prompt) {
+            step.image_url = await generateAIImage(step.image_prompt);
+          }
+        }));
+      } else if (type === 'pecs' && content.cards) {
+        await Promise.all(content.cards.map(async (card: any) => {
+          if (card.image_prompt) {
+            card.image_url = await generateAIImage(card.image_prompt);
+          }
+        }));
+      }
+
       res.json({
         title: content.title || topic || "Generated Resource",
         content: content,
