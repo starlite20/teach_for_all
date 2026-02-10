@@ -1,0 +1,181 @@
+2. Student Profile Management
+
+Teacher can:
+
+Create and save student profiles
+
+Stored in local database (or LocalStorage)
+
+Profile fields:
+
+Student name
+
+Age
+
+AET level
+
+Communication level
+
+Sensory preference
+
+Learning goals
+
+These profiles must be used to personalize generated content.
+
+3. Student Selection for Generation
+
+When teacher opens:
+
+Social Story Generator
+
+Worksheet Generator
+
+PECS Generator
+
+There must be:
+✅ A dropdown menu containing names of all created students
+✅ Teacher selects a student
+✅ The app loads that student’s profile
+✅ AI generation uses that profile automatically
+
+4. AI Content Generation (LLM)
+
+Based on selected student profile, generate:
+
+📖 Social Stories
+
+Very simple language
+
+Short sentences
+
+Step-by-step
+
+Positive behavior
+
+Visual placeholders
+
+Autism-friendly
+
+AET-aligned
+
+📝 Worksheets
+
+Visual-based
+
+Few words
+
+Clear tasks
+
+Big spacing
+
+Personalized to student level
+
+🖼️ PECS / Printable Cards
+
+One word or phrase
+
+One image
+
+Big font
+
+Printable A4 layout
+
+5. Language Support
+
+Full UI language toggle:
+
+English
+
+Arabic (RTL support)
+
+Generated content must match selected language:
+
+If Arabic is selected → AI outputs Arabic
+
+If English is selected → AI outputs English
+
+🎨 UI Design Rules (Autism-Friendly + AET Friendly)
+
+Calm pastel color palette
+
+High contrast text
+
+Large buttons
+
+Minimal animations
+
+Simple icons
+
+No overload
+
+Clear flow
+
+🛠 Tech Stack
+
+HTML
+
+CSS
+
+JavaScript
+
+LLM API (OpenAI / Gemini / LLaMA)
+
+📁 Pages
+
+index.html (login)
+
+dashboard.html
+
+students.html
+
+generator.html
+
+library.html
+
+📌 Must-Have Behaviors
+
+✔ Student profiles must be stored
+✔ Student dropdown must use stored data
+✔ AI generation must use student profile
+✔ Everything must be autism-friendly
+✔ Everything must be AET-aligned
+✔ Everything must support English & Arabic
+
+⭐ Bonus
+
+Print button
+
+Save generated resources
+
+Offline fallback templates
+
+✅ Answer to your question
+
+does this prompt covers that according to student profile the teacher will be able to generate social stories, worksheet and dropdown selection?
+
+➡️ Now: YES — fully covered.
+It explicitly says:
+
+Create student profiles
+
+Store them
+
+Use dropdown
+
+Generate based on selected student
+
+AET friendly
+
+English + Arabic
+
+This removes ambiguity for any AI or developer.
+
+If you want, next I can:
+
+✔ Convert this into LLM system prompt
+✔ Convert this into developer prompt
+✔ Convert this into user prompt
+✔ Generate UI wireframe
+✔ Generate starter code
+✔ Generate database logic
+✔ Generate Arabic/English toggle code
