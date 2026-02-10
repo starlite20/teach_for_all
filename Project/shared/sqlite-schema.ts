@@ -29,10 +29,11 @@ export const students = sqliteTable("students", {
     id: integer("id").primaryKey({ autoIncrement: true }),
     name: text("name").notNull(),
     age: integer("age").notNull(),
-    aetLevel: text("aet_level").notNull(),
+    aetLevel: text("aet_level").notNull(), // NYD, D, E, G
     communicationLevel: text("communication_level").notNull(),
     sensoryPreference: text("sensory_preference").notNull(),
     learningGoals: text("learning_goals").notNull(),
+    primaryInterest: text("primary_interest").notNull().default(""),
     teacherId: text("teacher_id").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });

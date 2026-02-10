@@ -12,18 +12,19 @@ export const students = pgTable("students", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   age: integer("age").notNull(),
-  aetLevel: text("aet_level").notNull(), // 'expected', 'emerging', 'secure' etc.
-  communicationLevel: text("communication_level").notNull(), // 'verbal', 'non-verbal', 'pecs'
+  aetLevel: text("aet_level").notNull(), // NYD, D, E, G
+  communicationLevel: text("communication_level").notNull(),
   sensoryPreference: text("sensory_preference").notNull(),
   learningGoals: text("learning_goals").notNull(),
-  teacherId: text("teacher_id").notNull(), // References users.id (which is varchar from auth schema)
+  primaryInterest: text("primary_interest").notNull().default(""),
+  teacherId: text("teacher_id").notNull(), // References users.id
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertStudentSchema = createInsertSchema(students).omit({ 
-  id: true, 
+export const insertStudentSchema = createInsertSchema(students).omit({
+  id: true,
   createdAt: true,
-  teacherId: true 
+  teacherId: true
 });
 
 export type Student = typeof students.$inferSelect;
@@ -41,9 +42,9 @@ export const resources = pgTable("resources", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertResourceSchema = createInsertSchema(resources).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertResourceSchema = createInsertSchema(resources).omit({
+  id: true,
+  createdAt: true
 });
 
 export type Resource = typeof resources.$inferSelect;

@@ -105,38 +105,70 @@ export async function registerRoutes(
         return res.status(503).json({ message: "AI services are currently unavailable (missing API key)" });
       }
 
-      const systemPrompt = `You are an expert special education teacher assisting a student with autism.
+      const systemPrompt = `You are a Specialist SEN Teacher at Al Karamah School. 
+      Generate a ${type} in a BILINGUAL (Arabic/English) format.
+      
       Student Profile:
       - Name: ${student.name}
-      - Age: ${student.age}
-      - Level: ${student.aetLevel}
+      - AET Level: ${student.aetLevel}
       - Communication: ${student.communicationLevel}
-      - Sensory: ${student.sensoryPreference}
-      - Goals: ${student.learningGoals}
+      - Primary Interest: ${student.primaryInterest}
+      - Target Areas: ${student.learningGoals?.replaceAll('|', ', ')}
 
-      Language: ${language === 'ar' ? 'Arabic' : 'English'}
-      Task: Generate a ${type} about "${topic || 'general daily skills'}".
-      Output Format: Return valid JSON only.
+      Tone: Concrete, literal, and high-support.
+      Personalization: Incorporate the student's interest in "${student.primaryInterest}" as the primary narrative anchor.
       
-      Constraints:
-      - Use simple, direct language.
-      - Positive reinforcement.
-      - Autism-friendly structure (clear steps).
-      - If Arabic, ensure correct grammar and simple vocabulary.
+      Structure:
+      - English on the top/left, Arabic on the bottom/right.
+      - If Social Story: Exactly 4 distinct steps. Each step must have "text_en" and "text_ar".
+      - If PECS: 6 cards. Each card must have "label_en" and "label_ar".
+      - If Worksheet: 3 questions. Each question must have "text_en" and "text_ar".
       `;
 
       let formatPrompt = "";
       if (type === 'story') {
-        formatPrompt = `Create a Social Story. JSON structure: { "title": "...", "steps": [{"text": "...", "image_prompt": "..."}] }`;
+        formatPrompt = `Create a Social Story about ${topic || 'daily skills'}. 
+        JSON structure: { 
+          "title": "Bilingual Title", 
+          "steps": [
+            {
+              "title": "Step Title",
+              "text_en": "English text...", 
+              "text_ar": "Arabic translation...", 
+              "image_prompt": "Visual description including ${student.primaryInterest}"
+            }
+          ] 
+        }`;
       } else if (type === 'worksheet') {
-        formatPrompt = `Create a Worksheet. JSON structure: { "title": "...", "instructions": "...", "questions": [{"question": "...", "instructions": "...", "options": ["..."], "correct_answer": "..."}] }`;
+        formatPrompt = `Create a Worksheet about ${topic || 'learning'}. 
+        JSON structure: { 
+          "title": "Bilingual Title", 
+          "instructions": "Simple instructions", 
+          "questions": [
+            {
+              "text_en": "English question...", 
+              "text_ar": "Arabic translation...",
+              "type": "matching"
+            }
+          ] 
+        }`;
       } else if (type === 'pecs') {
-        formatPrompt = `Create a set of PECS cards. JSON structure: { "title": "...", "cards": [{"label": "...", "image_prompt": "..."}] }`;
+        formatPrompt = `Create PECS cards. 
+        JSON structure: { 
+          "title": "Bilingual Title", 
+          "cards": [
+            {
+              "label_en": "English label", 
+              "label_ar": "Arabic label", 
+              "image_prompt": "Simple icon style of [label] with ${student.primaryInterest} elements"
+            }
+          ] 
+        }`;
       }
 
-      const prompt = `${systemPrompt}\n\n${formatPrompt}\n\nStrictly return only JSON. No markdown formatting.`;
+      const prompt = `${systemPrompt}\n\n${formatPrompt}\n\nReturn valid JSON only. No markdown. Ensure Arabic is high-quality but simple.`;
 
-      console.log(`Generating text content for ${type} (topic: ${topic})...`);
+      console.log(`Generating BILINGUAL SEN content for ${type}...`);
       const result = await geminiModel.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: { responseMimeType: "application/json" }

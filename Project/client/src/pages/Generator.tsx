@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Sparkles, Save, Printer, Loader2, BookOpen, FileText, LayoutGrid, Wand2, Info, CheckCircle2 } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -34,6 +35,8 @@ export default function Generator() {
   const [type, setType] = useState<"story" | "worksheet" | "pecs">("story");
   const [topic, setTopic] = useState("");
   const [generatedContent, setGeneratedContent] = useState<any>(null);
+
+  const selectedStudent = students?.find(s => s.id === studentId);
 
   const handleGenerate = () => {
     if (!studentId) {
@@ -86,109 +89,133 @@ export default function Generator() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-10 min-h-[calc(100vh-10rem)] pb-10">
-      {/* Controls Panel */}
+    <div className="flex flex-col lg:flex-row gap-8 min-h-[calc(100vh-8rem)] pb-10">
+      {/* Settings Panel - Left side */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="w-full lg:w-[450px] space-y-8"
+        className="w-full lg:w-[400px] flex flex-col gap-6"
       >
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-primary text-[10px] font-bold uppercase tracking-widest mb-4">
+        <div className="px-1">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-primary text-[10px] font-bold uppercase tracking-widest mb-3">
             <Wand2 className="w-3 h-3" />
             <span>AI Content Studio</span>
           </div>
-          <h1 className="text-4xl font-display font-bold text-slate-900 mb-2 leading-tight">
+          <h1 className="text-3xl font-display font-bold text-slate-900 mb-1 leading-tight">
             {t("gen.title")}
           </h1>
-          <p className="text-slate-500 font-medium">{t("gen.subtitle")}</p>
+          <p className="text-slate-500 font-medium text-sm">Professional AET resource builder.</p>
         </div>
 
-        <Card className="glass border-white/50 shadow-2xl shadow-indigo-500/5 overflow-hidden rounded-[2.5rem]">
-          <CardContent className="space-y-8 p-8">
-            <div className="space-y-3">
-              <Label className="text-slate-700 font-bold ml-1">{t("gen.select_student")}</Label>
+        <Card className="glass border-white/50 shadow-xl overflow-hidden rounded-[2rem]">
+          <CardContent className="space-y-6 p-6">
+            <div className="space-y-2">
+              <Label className="text-slate-700 font-bold text-xs ml-1">Student Profile</Label>
               <Select
                 value={studentId?.toString()}
                 onValueChange={(val) => setStudentId(Number(val))}
               >
-                <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-medium focus:ring-primary/20">
-                  <SelectValue placeholder="Choose a student profile..." />
+                <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-100 font-medium focus:ring-primary/20">
+                  <SelectValue placeholder="Choose a student..." />
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl border-slate-100 p-2">
+                <SelectContent className="rounded-xl border-slate-100 p-1">
                   {students?.map((s) => (
-                    <SelectItem key={s.id} value={s.id.toString()} className="rounded-xl py-3 px-4 font-medium mb-1 last:mb-0 cursor-pointer">
+                    <SelectItem key={s.id} value={s.id.toString()} className="rounded-lg py-2.5 px-3 font-medium cursor-pointer">
                       {s.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {selectedStudent && (
+                <div className="flex flex-wrap gap-1.5 mt-2 px-1">
+                  <Badge variant="outline" className="text-[9px] uppercase font-bold text-slate-400 border-slate-200">
+                    Level: {selectedStudent.aetLevel}
+                  </Badge>
+                  <Badge variant="outline" className="text-[9px] uppercase font-bold text-slate-400 border-slate-200">
+                    Interest: {selectedStudent.primaryInterest || "None"}
+                  </Badge>
+                </div>
+              )}
             </div>
 
-            <div className="space-y-4">
-              <Label className="text-slate-700 font-bold ml-1">{t("gen.resource_type")}</Label>
-              <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-2">
+              <Label className="text-slate-700 font-bold text-xs ml-1">Format</Label>
+              <div className="grid grid-cols-3 gap-2">
                 <TypeButton
                   active={type === "story"}
                   onClick={() => setType("story")}
                   icon={BookOpen}
-                  label={t("type.story")}
+                  label="Story"
                 />
                 <TypeButton
                   active={type === "worksheet"}
                   onClick={() => setType("worksheet")}
                   icon={FileText}
-                  label={t("type.worksheet")}
+                  label="Work"
                 />
                 <TypeButton
                   active={type === "pecs"}
                   onClick={() => setType("pecs")}
                   icon={LayoutGrid}
-                  label={t("type.pecs")}
+                  label="PECS"
                 />
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center justify-between ml-1">
-                <Label className="text-slate-700 font-bold">{t("gen.topic")}</Label>
-                <span className="text-[10px] text-slate-400 font-bold uppercase">Optional</span>
+                <Label className="text-slate-700 font-bold text-xs">{t("gen.topic")}</Label>
+                <span className="text-[9px] text-slate-400 font-bold uppercase">Prompt</span>
               </div>
               <Input
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder={t("gen.topic_placeholder")}
-                className="h-14 rounded-2xl bg-slate-50 border-slate-100 font-medium focus:ring-primary/20"
+                placeholder="e.g. Lunchtime rules"
+                className="h-12 rounded-xl bg-slate-50 border-slate-100 font-medium focus:ring-primary/20"
               />
-              <p className="text-[10px] text-slate-400 flex items-center gap-1.5 ml-1 font-medium italic">
-                <Info className="w-3 h-3" />
-                Example: "Going to the dentist" or "Morning routine"
-              </p>
             </div>
 
             <Button
               size="lg"
-              className="w-full text-lg rounded-[1.5rem] h-16 bg-primary shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/40 transition-all font-bold tracking-tight"
+              className="w-full text-md rounded-xl h-14 bg-primary shadow-lg shadow-primary/20 hover:shadow-xl transition-all font-bold"
               onClick={handleGenerate}
               disabled={generate.isPending || !studentId}
             >
               {generate.isPending ? (
-                <><Loader2 className="mr-3 h-6 w-6 animate-spin" /> {t("gen.generating")}</>
+                <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Generating...</>
               ) : (
-                <><Sparkles className="mr-3 h-6 w-6" /> {t("gen.generate")}</>
+                <><Sparkles className="mr-2 h-5 w-5" /> Create Resource</>
               )}
             </Button>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Preview Panel */}
+      {/* Preview Panel - Right side (Live A4) */}
       <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="flex-1 min-h-[400px]"
+        className="flex-1 min-h-[600px] flex flex-col gap-4"
       >
-        <div className="glass h-full rounded-[3rem] border-white/40 p-1 relative flex flex-col shadow-inner">
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">A4 Preview</span>
+          </div>
+          {generatedContent && (
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={handleSave} disabled={saveResource.isPending} className="rounded-lg h-9 font-bold text-primary">
+                <Save className="w-3.5 h-3.5 mr-1.5" />
+                Save
+              </Button>
+              <Button variant="default" size="sm" onClick={handlePrint} className="rounded-lg h-9 font-bold bg-slate-900">
+                <Printer className="w-3.5 h-3.5 mr-1.5" />
+                Print PDF
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 bg-slate-100 rounded-[2.5rem] p-8 overflow-y-auto flex justify-center shadow-inner">
           <AnimatePresence mode="wait">
             {!generatedContent ? (
               <motion.div
@@ -196,43 +223,44 @@ export default function Generator() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex-1 flex flex-col items-center justify-center p-12 text-center"
+                className="w-full max-w-[210mm] flex flex-col items-center justify-center text-center opacity-40"
               >
-                <div className="relative mb-8">
-                  <div className="absolute inset-0 bg-primary/20 rounded-full blur-[40px] animate-pulse" />
-                  <Sparkles className="w-24 h-24 text-primary relative z-10 opacity-30" />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-800 mb-2">Magic happens here</h3>
-                <p className="text-slate-400 font-medium max-w-xs">{t("gen.subtitle")}</p>
+                <Sparkles className="w-16 h-16 text-primary mb-4" />
+                <h3 className="text-xl font-bold text-slate-600">Preview will appear here</h3>
+                <p className="text-slate-400 text-sm font-medium">Configure settings to generate content</p>
               </motion.div>
             ) : (
               <motion.div
                 key="content"
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="flex-1 flex flex-col h-full"
+                id="printable-resource"
+                className="w-full max-w-[210mm] min-h-[297mm] bg-[var(--low-arousal-bg)] text-[var(--low-arousal-text)] shadow-2xl p-[30mm] flex flex-col rounded-sm"
               >
-                <div className="p-8 flex items-center justify-between border-b border-slate-100/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                      <CheckCircle2 className="w-6 h-6" />
-                    </div>
-                    <span className="font-bold text-slate-700">Preview Generated</span>
+                {/* AET Resource Header */}
+                <div className="border-b-2 border-[var(--low-arousal-border)] pb-6 mb-10 flex justify-between items-end">
+                  <div>
+                    <h4 className="text-[14px] font-bold uppercase tracking-wider mb-1 opacity-70">AET Specialized Resource</h4>
+                    <p className="text-xl font-bold font-sans">
+                      {selectedStudent?.name}
+                    </p>
                   </div>
-                  <div className="flex gap-3">
-                    <Button variant="ghost" size="sm" onClick={handleSave} disabled={saveResource.isPending} className="rounded-xl h-11 px-6 font-bold text-primary hover:bg-primary/5">
-                      <Save className="w-4 h-4 mr-2" />
-                      {t("gen.save")}
-                    </Button>
-                    <Button variant="default" size="sm" onClick={handlePrint} className="rounded-xl h-11 px-6 font-bold shadow-lg shadow-primary/20 bg-primary">
-                      <Printer className="w-4 h-4 mr-2" />
-                      {t("gen.print")}
-                    </Button>
+                  <div className="text-right">
+                    <p className="text-[11px] font-bold uppercase tracking-tight mb-1">
+                      Target: {selectedStudent?.learningGoals?.replaceAll('|', ', ') || "General"}
+                    </p>
+                    <p className="text-[11px] font-bold uppercase tracking-tight">
+                      Indicator: {selectedStudent?.aetLevel}
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-8 md:p-12" id="printable-resource">
-                  <ResourcePreview content={generatedContent} type={type} />
+                <ResourcePreview content={generatedContent} type={type} />
+
+                {/* Footer on Print */}
+                <div className="mt-auto pt-8 border-t border-[var(--low-arousal-border)] text-[10px] italic flex justify-between opacity-50">
+                  <span>Generated by AET Assist | CaseID: {studentId}</span>
+                  <span>Date: {new Date().toLocaleDateString()}</span>
                 </div>
               </motion.div>
             )}
@@ -248,14 +276,14 @@ function TypeButton({ active, onClick, icon: Icon, label }: any) {
     <button
       onClick={onClick}
       className={cn(
-        "p-5 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all duration-300 h-24 group",
+        "flex-1 p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all duration-300 h-20 group",
         active
-          ? "border-primary bg-primary text-white shadow-xl shadow-primary/30"
-          : "border-slate-100 bg-slate-50 hover:bg-white hover:border-slate-200 hover:shadow-lg text-slate-400 hover:text-primary"
+          ? "border-primary bg-primary text-white shadow-md shadow-primary/20"
+          : "border-slate-100 bg-slate-50 hover:bg-white hover:border-slate-200 text-slate-400 hover:text-primary"
       )}
     >
-      <Icon className={cn("w-6 h-6 transition-transform duration-500", active ? "scale-110" : "group-hover:scale-110")} />
-      <span className="text-[10px] font-bold uppercase tracking-widest">{label}</span>
+      <Icon className={cn("w-5 h-5 transition-transform", active ? "scale-110" : "group-hover:scale-110")} />
+      <span className="text-[9px] font-bold uppercase tracking-wider">{label}</span>
     </button>
   );
 }
@@ -266,109 +294,86 @@ function ResourcePreview({ content, type }: { content: any, type: string }) {
 
   if (type === "story") {
     return (
-      <div className="max-w-3xl mx-auto space-y-16 py-10">
-        <div className="text-center space-y-4 mb-20">
-          <h2 className="font-display text-5xl font-bold text-slate-900 leading-tight">{content.title}</h2>
-          <div className="h-1.5 w-24 bg-primary mx-auto rounded-full" />
-        </div>
+      <div className="space-y-12">
+        <h2 className="text-3xl font-bold text-center mb-10 leading-tight">{content.title}</h2>
 
         {data.steps?.map((step: any, idx: number) => (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            key={idx}
-            className="flex flex-col gap-8 pb-16 last:pb-0 border-b border-slate-100 last:border-0"
-          >
-            {step.image_url ? (
-              <div className="relative group mx-auto">
-                <div className="absolute inset-0 bg-primary/10 rounded-[2.5rem] blur-2xl group-hover:bg-primary/20 transition-all" />
-                <img src={step.image_url} alt="Visual aid" className="relative z-10 max-h-80 w-auto rounded-[2.5rem] shadow-2xl border-4 border-white object-contain" />
-              </div>
-            ) : step.image_prompt && (
-              <div className="w-full h-48 bg-slate-50 rounded-[2rem] flex items-center justify-center border-2 border-dashed border-slate-200 text-slate-300 italic font-medium px-10 text-center">
-                Generating visual for: {step.image_prompt.substring(0, 50)}...
+          <div key={idx} className="grid grid-cols-1 gap-6 pb-10 last:pb-0">
+            {step.image_url && (
+              <div className="w-full flex justify-center">
+                <img src={step.image_url} alt="Step" className="max-h-64 object-contain rounded-lg border-2 border-slate-900/5" />
               </div>
             )}
-            <p className="text-2xl font-medium text-slate-700 leading-relaxed text-center px-4">
-              {step.text}
-            </p>
-          </motion.div>
+            <div className="grid grid-cols-2 gap-8 border-t border-slate-100 pt-6">
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold uppercase opacity-50">English</span>
+                <p className="text-lg leading-relaxed">{step.text_en || step.text}</p>
+              </div>
+              <div className="space-y-2 text-right" dir="rtl">
+                <span className="text-[10px] font-bold uppercase opacity-50">العربية</span>
+                <p className="text-xl font-medium leading-relaxed font-sans">{step.text_ar || step.text}</p>
+              </div>
+            </div>
+          </div>
         ))}
-        {!data.steps && <pre className="whitespace-pre-wrap p-6 bg-slate-50 rounded-2xl border border-slate-100">{JSON.stringify(data, null, 2)}</pre>}
       </div>
     );
   }
 
   if (type === "pecs") {
     return (
-      <div className="max-w-4xl mx-auto">
-        <h2 className="font-display text-3xl font-bold text-center mb-12 text-slate-800">{content.title}</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+      <div className="flex-1">
+        <h2 className="text-2xl font-bold text-center mb-8">{content.title}</h2>
+        <div className="grid grid-cols-2 gap-6">
           {data.cards?.map((card: any, idx: number) => (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
+            <div
               key={idx}
-              className="bg-white border-[6px] border-slate-900 p-4 rounded-[2rem] aspect-square flex flex-col items-center justify-between text-center shadow-lg hover:shadow-2xl transition-all hover:scale-[1.02]"
+              className="bg-white border-2 border-slate-300 p-4 rounded-xl aspect-square flex flex-col items-center justify-between text-center"
             >
-              <div className="flex-1 flex items-center justify-center p-4">
+              <div className="flex-1 flex items-center justify-center p-2">
                 {card.image_url ? (
-                  <img src={card.image_url} className="max-h-32 w-auto rounded-xl object-contain shadow-sm" />
+                  <img src={card.image_url} className="max-h-24 w-auto rounded-md object-contain" />
                 ) : (
-                  <div className="w-24 h-24 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200">
-                    <LayoutGrid className="w-12 h-12" />
-                  </div>
+                  <LayoutGrid className="w-10 h-10 opacity-10" />
                 )}
               </div>
-              <div className="w-full h-px bg-slate-800 my-4 opacity-10" />
-              <p className="font-bold uppercase text-2xl tracking-tighter text-slate-900 leading-none pb-2">{card.label}</p>
-            </motion.div>
+              <div className="w-full border-t pt-3 mt-2 grid grid-cols-2 gap-2 text-[10px] font-bold">
+                <span className="text-slate-500 uppercase">{card.label_en || card.label}</span>
+                <span className="font-sans" dir="rtl">{card.label_ar || card.label}</span>
+              </div>
+            </div>
           ))}
         </div>
-        {!data.cards && <pre className="whitespace-pre-wrap p-6 bg-slate-50 rounded-2xl">{JSON.stringify(data, null, 2)}</pre>}
       </div>
     );
   }
 
-  // Worksheet fallback
+  // Worksheet
   return (
-    <div className="max-w-3xl mx-auto space-y-12">
-      <div className="text-center space-y-4">
-        <h2 className="font-display text-4xl font-bold text-slate-900">{content.title}</h2>
-        <div className="w-20 h-1 bg-primary mx-auto rounded-full" />
-      </div>
-
+    <div className="space-y-10">
+      <h2 className="text-3xl font-bold">{content.title}</h2>
       {data.instructions && (
-        <div className="p-8 bg-indigo-50/50 rounded-[2rem] border border-indigo-100 flex gap-4">
-          <Info className="w-8 h-8 text-primary flex-shrink-0" />
-          <div>
-            <span className="font-bold text-primary uppercase text-[10px] tracking-widest block mb-1">Teacher Instructions</span>
-            <p className="font-bold text-slate-700 text-xl leading-snug">{data.instructions}</p>
-          </div>
+        <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm italic">
+          {data.instructions}
         </div>
       )}
-
-      <div className="space-y-8">
+      <div className="space-y-12">
         {data.questions?.map((q: any, idx: number) => (
-          <div key={idx} className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/20">
-            <div className="flex gap-4 mb-8">
-              <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold font-display text-lg flex-shrink-0">
-                {idx + 1}
-              </div>
-              <p className="font-bold text-2xl text-slate-800 leading-tight">{q.text}</p>
+          <div key={idx} className="space-y-4">
+            <div className="flex justify-between items-start gap-8">
+              <p className="font-bold text-lg">{idx + 1}. {q.text_en || q.text}</p>
+              <p className="text-xl font-medium text-right" dir="rtl">{q.text_ar || q.text}</p>
             </div>
-
-            <div className="grid grid-cols-3 gap-6 pt-4">
+            <div className="grid grid-cols-3 gap-4 pt-2">
               {[1, 2, 3].map(i => (
-                <div key={i} className="aspect-square border-4 border-dashed border-slate-100 rounded-[2rem] flex items-center justify-center group-hover:border-primary/20 transition-colors" />
+                <div key={i} className="aspect-square border-2 border-slate-200 rounded-xl flex items-center justify-center text-[10px] text-slate-300 uppercase font-bold">
+                  Place here
+                </div>
               ))}
             </div>
           </div>
         ))}
       </div>
-      {!data.questions && <pre className="whitespace-pre-wrap p-6 bg-slate-50 rounded-2xl">{JSON.stringify(data, null, 2)}</pre>}
     </div>
   );
 }
