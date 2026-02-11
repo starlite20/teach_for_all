@@ -93,17 +93,19 @@ app.use((req, res, next) => {
   }
 
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Koyeb and other cloud providers will pass this variable to you.
-  const port = parseInt(process.env.PORT || "8000", 10);
-
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0", // CHANGED FROM 127.0.0.1 TO 0.0.0.0
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
+  // Wrap the listen call in a condition
+  if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+    const port = parseInt(process.env.PORT || "8000", 10);
+    httpServer.listen(
+      {
+        port,
+        host: "0.0.0.0",
+      },
+      () => {
+        log(`serving on port ${port}`);
+      },
+    );
+  }
 })();
+
+export default app;
