@@ -240,6 +240,8 @@ function ResourceList({ studentId }: { studentId: number }) {
                     type={selectedResource.type}
                     mode={selectedResource.language || "en"}
                     onUpdate={() => { }} // Read-only in library
+                    fontSize={selectedResource.content?.settings?.fontSize || 18}
+                    orientation={selectedResource.content?.settings?.orientation || "portrait"}
                   />
 
                   {/* Footer */}

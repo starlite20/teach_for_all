@@ -5,12 +5,23 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Sparkles, RefreshCcw, Pencil, LayoutGrid, ArrowRight } from "lucide-react";
 
-export function ResourcePreview({ content, type, mode, onUpdate }: { content: any, type: string, mode: string, onUpdate: (c: any) => void }) {
+export function ResourcePreview({
+    content,
+    type,
+    mode,
+    onUpdate,
+    fontSize = 18,
+    orientation = "portrait"
+}: {
+    content: any,
+    type: string,
+    mode: string,
+    onUpdate: (c: any) => void,
+    fontSize?: number,
+    orientation?: "portrait" | "landscape"
+}) {
     if (!content) return null;
     const data = content.content || content; // Handle both wrapped and unwrapped content if necessary
-    // In Generator, content is { title, content: { ... } }
-    // In Library, content might be the same structure.
-    // Let's assume standard structure: { title: string, content: { steps/cards/questions: [] } }
 
     // Actually, look at Generator.tsx:
     // const data = content.content;
@@ -63,7 +74,10 @@ export function ResourcePreview({ content, type, mode, onUpdate }: { content: an
                 </h2>
 
                 {data.steps?.map((step: any, idx: number) => (
-                    <div key={idx} className="grid grid-cols-1 gap-6 pb-10 last:pb-0 break-inside-avoid page-break-inside-avoid">
+                    <div key={idx} className={cn(
+                        "gap-6 pb-10 last:pb-0 break-inside-avoid page-break-inside-avoid",
+                        orientation === "landscape" ? "grid grid-cols-2 items-center" : "grid grid-cols-1"
+                    )}>
                         <div className="relative group/img">
                             <div className="w-full flex justify-center">
                                 {step.image_url ? (
@@ -100,7 +114,7 @@ export function ResourcePreview({ content, type, mode, onUpdate }: { content: an
                                 <p
                                     id={`text-step-${idx}`}
                                     className="leading-relaxed outline-none border border-transparent hover:border-slate-100 p-1 rounded transition-all"
-                                    style={{ fontSize: '1.25em' }}
+                                    style={{ fontSize: `${fontSize}px` }}
                                     contentEditable
                                     suppressContentEditableWarning
                                     onBlur={(e) => {
@@ -117,7 +131,7 @@ export function ResourcePreview({ content, type, mode, onUpdate }: { content: an
                                     <span className="text-[10px] font-bold uppercase opacity-50">العربية</span>
                                     <p
                                         className="font-medium leading-relaxed font-sans outline-none border border-transparent hover:border-slate-100 p-1 rounded transition-all"
-                                        style={{ fontSize: '1.5em' }}
+                                        style={{ fontSize: `${fontSize}px` }}
                                         contentEditable
                                         suppressContentEditableWarning
                                         onBlur={(e) => handleUpdateField(['steps', idx.toString(), 'text_ar'], e.currentTarget.innerText)}
@@ -137,7 +151,10 @@ export function ResourcePreview({ content, type, mode, onUpdate }: { content: an
         return (
             <div className="flex-1">
                 <h2 className="text-2xl font-bold text-center mb-8">{content.title}</h2>
-                <div className="grid grid-cols-2 gap-8">
+                <div className={cn(
+                    "grid gap-8",
+                    orientation === "landscape" ? "grid-cols-4" : "grid-cols-2"
+                )}>
                     {data.cards?.map((card: any, idx: number) => (
                         <div
                             key={idx}
@@ -176,7 +193,8 @@ export function ResourcePreview({ content, type, mode, onUpdate }: { content: an
                                 {(mode === "en" || mode === "bilingual") && (
                                     <p
                                         id={`text-card-${idx}`}
-                                        className="text-xs font-bold text-slate-500 uppercase outline-none"
+                                        className="font-bold text-slate-500 uppercase outline-none"
+                                        style={{ fontSize: `${fontSize}px` }}
                                         contentEditable
                                         suppressContentEditableWarning
                                         onBlur={(e) => {
@@ -191,7 +209,7 @@ export function ResourcePreview({ content, type, mode, onUpdate }: { content: an
                                 {(mode === "ar" || mode === "bilingual") && (
                                     <p
                                         className="font-sans font-bold outline-none hover:bg-slate-50 rounded"
-                                        style={{ fontSize: '1.2em' }}
+                                        style={{ fontSize: `${fontSize}px` }}
                                         dir="rtl"
                                         contentEditable
                                         suppressContentEditableWarning

@@ -95,11 +95,65 @@ export async function registerRoutes(
   app.post(api.resources.create.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const input = insertResourceSchema.parse(req.body);
+      // PERSISTENCE FIX: Scan for base64 images and upload to Supabase
+      const { uploadToSupabase } = await import("./ai");
+
+      const processContentImages = async (content: any) => {
+        if (!content) return;
+
+        // Helper to check and upload
+        const checkAndUpload = async (obj: any, key: string) => {
+          if (obj[key] && obj[key].startsWith('data:image')) {
+            console.log("Found base64 image in save payload. Uploading to Supabase...");
+            // Extract base64 info
+            const matches = obj[key].match(/^data:(.+);base64,(.+)$/);
+            if (matches) {
+              const mimeType = matches[1];
+              const base64Data = matches[2];
+              const publicUrl = await uploadToSupabase(base64Data, mimeType);
+              if (publicUrl) {
+                obj[key] = publicUrl;
+                console.log("Replaced base64 with:", publicUrl);
+              }
+            }
+          }
+        };
+
+        if (content.type === 'story' && content.content?.steps) {
+          for (const step of content.content.steps) {
+            await checkAndUpload(step, 'image_url');
+          }
+        }
+        if (content.type === 'pecs' && content.content?.cards) {
+          for (const card of content.content.cards) {
+            await checkAndUpload(card, 'image_url');
+          }
+        }
+        if (content.type === 'worksheet' && content.content?.questions) {
+          for (const q of content.content.questions) {
+            if (q.choices) {
+              for (const c of q.choices) {
+                await checkAndUpload(c, 'image_url');
+              }
+            }
+          }
+        }
+      };
+
+      // Clone body to avoid mutating req.body unexpectedly if used elsewhere (though here it's fine)
+      const body = JSON.parse(JSON.stringify(req.body));
+
+      // The `content` field in the DB schema is a JSON column.
+      // In the request, `body.content` usually contains the actual resource data (steps, etc).
+      // Let's process it.
+      await processContentImages({ type: body.type, content: body.content });
+
+      const input = insertResourceSchema.parse(body);
       const resource = await storage.createResource(input);
       res.status(201).json(resource);
-    } catch (e) {
-      res.status(400).json({ message: "Invalid input" });
+    } catch (e: any) {
+      console.error("Save Resource Error:", e);
+      res.status(400).json({ message: "Invalid input or upload failed" });
     }
   });
 
@@ -148,8 +202,17 @@ export async function registerRoutes(
       if (itemsToProcess.length > 0) {
         console.log(`[AI] Generating ${itemsToProcess.length} images (Batch Limit: 5)...`);
         await processInBatches(itemsToProcess, 5, async (item: any) => {
+          // Standard items (steps, cards)
           if (item.image_prompt) {
             item.image_url = await generateAIImage(item.image_prompt);
+          }
+          // Detailed scan for Worksheet Choices
+          if (item.choices && Array.isArray(item.choices)) {
+            for (const choice of item.choices) {
+              if (choice.image_prompt) {
+                choice.image_url = await generateAIImage(choice.image_prompt);
+              }
+            }
           }
         });
       }

@@ -481,18 +481,20 @@ export default function Generator() {
 
             {/* Font Control Toolbar */}
             <div className="flex items-center gap-2 bg-white/50 p-1 rounded-xl border border-white/80 shadow-sm ml-4">
-              <div className="flex items-center gap-1.5 px-2 border-r border-slate-200">
-                <Type className="w-3.5 h-3.5 text-slate-400" />
-                <Select value={fontSize.toString()} onValueChange={(v) => setFontSize(Number(v))}>
-                  <SelectTrigger className="h-7 w-14 border-none bg-transparent text-[10px] font-bold text-slate-600 focus:ring-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[14, 18, 24, 32, 40].map(s => (
-                      <SelectItem key={s} value={s.toString()} className="text-xs">{s}px</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex items-center gap-3 px-2 border-r border-slate-200 min-w-[140px]">
+                <Type className="w-3.5 h-3.5 text-slate-400 flex-none" />
+                <div className="flex-1">
+                  <input
+                    type="range"
+                    min="12"
+                    max="64"
+                    step="2"
+                    value={fontSize}
+                    onChange={(e) => setFontSize(Number(e.target.value))}
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary"
+                  />
+                </div>
+                <span className="text-[10px] font-bold text-slate-600 w-6 text-right">{fontSize}</span>
               </div>
 
               <div className="flex gap-1 px-1 border-r border-slate-200">
@@ -664,7 +666,14 @@ export default function Generator() {
                   </div>
 
                   <div className="flex-1">
-                    <ResourcePreview content={generatedContent} type={type} mode={genLanguage} onUpdate={(newFullContent) => setGeneratedContent(newFullContent)} />
+                    <ResourcePreview
+                      content={generatedContent}
+                      type={type}
+                      mode={genLanguage}
+                      onUpdate={(newFullContent) => setGeneratedContent(newFullContent)}
+                      fontSize={fontSize}
+                      orientation={orientation}
+                    />
                   </div>
 
                   {/* Footer on Print */}
@@ -752,9 +761,9 @@ function TailoringText({ name }: { name: string }) {
   const [index, setIndex] = useState(0);
   const messages = [
     `Syncing with AET Framework...`,
-    `Saving to Student Library...`,
+    `Uploading to Cloud Storage...`,
     `Optimizing A4 Layout...`,
-    `Finalizing Visuals...`
+    `Finalizing A4 Scaling...`
   ];
 
   useEffect(() => {

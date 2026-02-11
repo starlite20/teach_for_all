@@ -22,7 +22,12 @@ app.use(
   }),
 );
 
-app.use(express.urlencoded({ extended: false }));
+app.use(
+  express.urlencoded({
+    limit: '50mb',
+    extended: true,
+  })
+);
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
