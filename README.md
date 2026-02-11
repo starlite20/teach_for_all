@@ -2,8 +2,6 @@
 
 > **Empowering inclusive education through AI-generated, personalized learning resources.**
 
-![Project Banner Placeholder](https://placehold.co/1200x400?text=TeachForAll+Banner)
-
 ## 📖 Overview
 
 **TeachForAll** is an AI-powered platform designed to assist special education teachers, therapists, and parents in creating customized learning materials for students with diverse needs.
@@ -40,7 +38,7 @@ In inclusive classrooms, educators often struggle to find resources that match e
 ## 🏗️ System Architecture
 
 ```mermaid
-graph TD
+
     User[👩‍🏫 Teacher] -->|Manage Students| Client[💻 React Client]
     Client -->|REST API| Server[🚀 Express Server]
     
@@ -134,10 +132,10 @@ The system uses a sophisticated **Prompt Library** (`server/promptLibrary.ts`) t
 
 ## 🔮 Future Improvements
 
-- [ ] **Mobile App**: Native app for parents to use resources on the go.
-- [ ] **Teacher Community**: Sharing successful resources with other educators.
-- [ ] **Voice Output**: Text-to-speech for generated stories.
-- [ ] **Data Analytics**: Tracking student progress on worksheets over time.
+- **Mobile App**: Native app for parents to use resources on the go.
+- **Teacher Community**: Sharing successful resources with other educators.
+- **Voice Output**: Text-to-speech for generated stories.
+- **Data Analytics**: Tracking student progress on worksheets over time.
 
 
 ---
