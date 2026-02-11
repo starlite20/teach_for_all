@@ -32,8 +32,8 @@ export default function Landing() {
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-2 group cursor-pointer"
         >
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
-            <Sparkles className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform p-1.5 border border-slate-100">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold font-display text-slate-900">TeachForAll</h1>
         </motion.div>
@@ -117,12 +117,8 @@ export default function Landing() {
             <div className="glass rounded-[2rem] p-4 shadow-3xl relative z-10 overflow-hidden">
               <div className="bg-slate-50 border border-slate-200/50 rounded-2xl overflow-hidden aspect-[4/3] flex items-center justify-center">
                 <div className="text-center p-8">
-                  <LayoutDashboard className="w-20 h-20 text-primary/20 mx-auto mb-6" />
-                  <div className="space-y-3 max-w-xs mx-auto">
-                    <div className="h-3 w-full bg-slate-200 rounded-full animate-pulse" />
-                    <div className="h-3 w-4/5 bg-slate-200 rounded-full animate-pulse" />
-                    <div className="h-3 w-2/3 bg-slate-200 rounded-full animate-pulse mx-auto" />
-                  </div>
+                  <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+
                 </div>
               </div>
             </div>

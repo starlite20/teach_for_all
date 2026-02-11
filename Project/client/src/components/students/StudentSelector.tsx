@@ -61,12 +61,6 @@ export function StudentSelector({ students, isOpen, onSelect, onClose }: Student
                                             "flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-300",
                                             "bg-white border-transparent hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 shadow-sm"
                                         )}>
-                                            <div className={cn(
-                                                "w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold text-white shadow-md",
-                                                colors.gradient
-                                            )}>
-                                                {student.name.charAt(0)}
-                                            </div>
 
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-0.5">

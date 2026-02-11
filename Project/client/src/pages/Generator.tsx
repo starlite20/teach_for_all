@@ -211,7 +211,7 @@ export default function Generator() {
                         "w-16 h-16 rounded-[1.5rem] bg-gradient-to-tr flex items-center justify-center text-2xl font-bold text-white shadow-lg",
                         getAETColor(selectedStudent.aetLevel).gradient
                       )}>
-                        {selectedStudent.name.charAt(0)}
+                        {selectedStudent.name ? selectedStudent.name.charAt(0).toUpperCase() : "?"}
                       </div>
                       <div>
                         <h2 className="text-2xl font-bold text-slate-900 leading-none mb-2">{selectedStudent.name}</h2>
@@ -594,8 +594,8 @@ export default function Generator() {
                   {/* AET Resource Header - Simplified with Logo */}
                   <div className="pb-6 mb-10 flex justify-between items-center border-b-2 border-slate-100">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-white shadow-sm">
-                        <Sparkles className="w-7 h-7" />
+                      <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm overflow-hidden border border-slate-100 p-1">
+                        <img src="/logo.png" alt="TeachForAll Logo" className="w-full h-full object-contain" />
                       </div>
                       <div>
                         <h1 className="text-2xl font-bold text-slate-900 leading-none mb-1">{generatedContent.title || "Activity"}</h1>

@@ -67,8 +67,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="p-8 flex items-center justify-between">
             <Link href="/">
               <div className="flex items-center gap-3 cursor-pointer group">
-                <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
-                  <Sparkles className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform p-1.5 border border-slate-100">
+                  <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
                 </div>
                 <h1 className="text-xl font-bold text-slate-900 font-display">TeachForAll</h1>
               </div>
@@ -145,7 +145,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Mobile Header */}
         <header className="md:hidden h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-[50]">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-primary" />
+            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm border border-slate-100 p-1">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+            </div>
             <h1 className="text-xl font-bold text-slate-900 font-display">TeachForAll</h1>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)}>
