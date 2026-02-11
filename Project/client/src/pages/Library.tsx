@@ -150,27 +150,51 @@ function ResourceList({ studentId }: { studentId: number }) {
                   onClick={async () => {
                     const element = document.getElementById("library-printable-resource");
                     if (!element) return;
+
                     try {
-                      const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#FFFFFF' });
-                      const imgData = canvas.toDataURL("image/png");
-                      const pdf = new jsPDF("p", "mm", "a4");
+                      // 1. Capture High-Res Canvas
+                      const canvas = await html2canvas(element, {
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: '#FFFFFF',
+                        logging: false
+                      });
+
+                      // 2. Initialize PDF
+                      const orientation = selectedResource.content?.settings?.orientation || "portrait";
+                      const isLandscape = orientation === "landscape";
+                      const pdf = new jsPDF(isLandscape ? "l" : "p", "mm", "a4");
+
                       const pdfWidth = pdf.internal.pageSize.getWidth();
                       const pdfHeight = pdf.internal.pageSize.getHeight();
-                      const imgHeight = canvas.height * pdfWidth / canvas.width;
-                      let heightLeft = imgHeight;
-                      let position = 0;
 
-                      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-                      heightLeft -= pdfHeight;
+                      // 3. Aspect Ratio & Fit
+                      const imgWidth = canvas.width;
+                      const imgHeight = canvas.height;
+                      const imgRatio = imgWidth / imgHeight;
 
-                      while (heightLeft > 0) {
-                        position = heightLeft - imgHeight;
-                        pdf.addPage();
-                        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-                        heightLeft -= pdfHeight;
+                      let finalWidth = pdfWidth;
+                      let finalHeight = finalWidth / imgRatio;
+
+                      if (finalHeight > pdfHeight) {
+                        finalHeight = pdfHeight;
+                        finalWidth = finalHeight * imgRatio;
                       }
+
+                      // 4. Center
+                      const x = (pdfWidth - finalWidth) / 2;
+                      const y = (pdfHeight - finalHeight) / 2;
+
+                      // 5. Add Image
+                      const imgData = canvas.toDataURL("image/png");
+                      pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+
+                      // 6. Save
                       pdf.save(`${selectedResource.title}.pdf`);
-                    } catch (e) { console.error(e); }
+                    } catch (e) {
+                      console.error("Library Print Error:", e);
+                    }
                   }}
                 >
                   <Printer className="w-4 h-4 mr-2" />
@@ -182,12 +206,11 @@ function ResourceList({ studentId }: { studentId: number }) {
                   id="library-printable-resource"
                   className={cn(
                     "bg-white text-slate-900 shadow-2xl p-[20mm] flex flex-col rounded-sm transition-all duration-300 origin-top mx-auto",
-                    // Use settings from content if available, else default
                     selectedResource.content?.settings?.fontFamily || "font-sans"
                   )}
                   style={{
-                    width: "210mm",
-                    minHeight: "297mm",
+                    width: (selectedResource.content?.settings?.orientation === "landscape") ? "297mm" : "210mm",
+                    minHeight: (selectedResource.content?.settings?.orientation === "landscape") ? "210mm" : "297mm",
                     fontSize: `${selectedResource.content?.settings?.fontSize || 18}px`,
                     lineHeight: selectedResource.content?.settings?.lineHeight || "1.5",
                     transformOrigin: "top center",

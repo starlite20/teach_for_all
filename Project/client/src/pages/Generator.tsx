@@ -70,6 +70,18 @@ export default function Generator() {
   };
 
 
+  // Arabic Mapping for AET
+  const AET_ARABIC_MAP: Record<string, string> = {
+    "1_communication_and_interaction": "التواصل والتفاعل",
+    "2_social_understanding_and_relationships": "الفهم الاجتماعي والعلاقات",
+    "3_sensory_processing": "المعالجة الحسية",
+    "4_interests_routines_and_processing": "الاهتمامات والروتين والمعالجة",
+    "5_emotional_understanding_and_self_awareness": "الفهم العاطفي والوعي الذاتي",
+    "6_learning_and_engagement": "التعلم والمشاركة",
+    "7_healthy_living": "الحياة الصحية",
+    "8_independence_and_community_participation": "الاستقلالية والمشاركة المجتمعية"
+  };
+
   // Update defaults when student changes
   useEffect(() => {
     if (selectedStudent) {
@@ -112,7 +124,8 @@ export default function Generator() {
         settings: {
           fontSize,
           lineHeight,
-          fontFamily
+          fontFamily,
+          orientation
         }
       }
     });
@@ -122,42 +135,61 @@ export default function Generator() {
     const element = document.getElementById("printable-resource");
     if (!element) return;
 
-    // Load Noto Sans Arabic or similar if needed for jsPDF
-    // Note: html2canvas captures the rendering correctly, so the imgData will contain the glyphs.
-    // However, if we want high-quality PDF text (non-image), we'd need jspdf-autotable or font embedding.
-    // For now, html2canvas is the most reliable way to preserve the 'Low-Arousal' styling and Arabic glyphs.
-
     try {
+      toast({ title: "preparing PDF...", description: "Capturing high-quality preview..." });
+
+      // 1. Capture High-Res Canvas
       const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#FDFCF8'
+        scale: 2, // High resolution for print
+        useCORS: true, // Allow cross-origin images (Supabase)
+        allowTaint: true,
+        backgroundColor: '#FFFFFF', // Ensure white background
+        logging: false,
+        onclone: (clonedDoc) => {
+          // Optional: modifications to cloned document before capture if needed
+          const clonedEl = clonedDoc.getElementById("printable-resource");
+          if (clonedEl) {
+            // Force specific print styles if needed
+          }
+        }
       });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF(orientation === "portrait" ? "p" : "l", "mm", "a4");
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgHeight = canvas.height * pdfWidth / canvas.width;
+      // 2. Initialize A4 PDF
+      // A4 dimensions: 210mm x 297mm
+      const isLandscape = orientation === "landscape";
+      const pdf = new jsPDF(isLandscape ? "l" : "p", "mm", "a4");
 
-      let heightLeft = imgHeight;
+      const pdfWidth = pdf.internal.pageSize.getWidth();   // 210 or 297
+      const pdfHeight = pdf.internal.pageSize.getHeight(); // 297 or 210
 
-      let position = 0;
+      // 3. Calculate Aspect Ratio & Fit
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const imgRatio = imgWidth / imgHeight;
 
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-      heightLeft -= pdfHeight;
+      let finalWidth = pdfWidth;
+      let finalHeight = finalWidth / imgRatio;
 
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-        heightLeft -= pdfHeight;
+      // Check if height overflows
+      if (finalHeight > pdfHeight) {
+        finalHeight = pdfHeight;
+        finalWidth = finalHeight * imgRatio;
       }
 
-      pdf.save(`${generatedContent.title || 'resource'}.pdf`);
+      // 4. Center the image on the PDF page
+      const x = (pdfWidth - finalWidth) / 2;
+      const y = (pdfHeight - finalHeight) / 2;
+
+      // 5. Add Image
+      const imgData = canvas.toDataURL("image/png");
+      pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+
+      // 6. Save
+      pdf.save(`${generatedContent.title || 'TeachForAll_Resource'}.pdf`);
+      toast({ title: "Success", description: "PDF downloaded successfully." });
     } catch (err) {
-      console.error(err);
-      toast({ title: "Print failed", description: "Could not generate PDF", variant: "destructive" });
+      console.error("PDF Generation Error:", err);
+      toast({ title: "Print failed", description: "Could not generate PDF. Please try again.", variant: "destructive" });
     }
   };
 
@@ -536,6 +568,15 @@ export default function Generator() {
         </div>
 
         <div className="flex-1 bg-slate-100 rounded-[2.5rem] p-8 overflow-y-auto flex justify-center shadow-inner relative">
+          {saveResource.isPending && (
+            <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center rounded-[2.5rem]">
+              <div className="relative">
+                <div className="absolute inset-0 bg-indigo-500 blur-xl opacity-20 animate-pulse rounded-full"></div>
+                <Loader2 className="w-16 h-16 text-indigo-600 animate-spin relative z-10" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mt-6 animate-pulse">Securing resource to cloud library...</h3>
+            </div>
+          )}
           {generate.isPending && (
             <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center rounded-[2.5rem]">
               <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
@@ -592,19 +633,33 @@ export default function Generator() {
                   }}
                 >
                   {/* AET Resource Header - Simplified with Logo */}
-                  <div className="pb-6 mb-10 flex justify-between items-center border-b-2 border-slate-100">
+                  <div className="pb-6 mb-10 flex justify-between items-center border-b-2 border-slate-100" dir={genLanguage === 'ar' ? 'rtl' : 'ltr'}>
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm overflow-hidden border border-slate-100 p-1">
                         <img src="/logo.png" alt="TeachForAll Logo" className="w-full h-full object-contain" />
                       </div>
-                      <div>
-                        <h1 className="text-2xl font-bold text-slate-900 leading-none mb-1">{generatedContent.title || "Activity"}</h1>
-                        <p className="text-lg font-medium text-slate-500">{selectedStudent?.name}</p>
+                      <div className={cn("text-left", genLanguage === 'ar' && "text-right")}>
+                        <h1 className="text-2xl font-bold text-slate-900 leading-none mb-1">
+                          {generatedContent.title || (genLanguage === 'ar' ? "نشاط" : "Activity")}
+                        </h1>
+                        <div className="flex flex-col">
+                          <p className="text-lg font-medium text-slate-500">
+                            {genLanguage === 'ar' ? "الطالب: " : "Student: "}
+                            {selectedStudent?.name}
+                          </p>
+                          {selectedMainArea && (
+                            <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mt-1">
+                              {genLanguage === 'ar'
+                                ? AET_ARABIC_MAP[selectedMainArea] || "الهدف"
+                                : AET_FRAMEWORK[selectedMainArea as keyof typeof AET_FRAMEWORK]?.label || "Target"}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right opacity-50">
+                    <div className={cn("text-right opacity-50", genLanguage === 'ar' && "text-left")}>
                       <p className="text-xs font-bold uppercase tracking-widest">TeachForAll</p>
-                      <p className="text-[10px]">{new Date().toLocaleDateString()}</p>
+                      <p className="text-[10px]">{new Date().toLocaleDateString(genLanguage === 'ar' ? 'ar-AE' : 'en-US')}</p>
                     </div>
                   </div>
 
@@ -642,8 +697,10 @@ function LanguageButton({ active, label, onClick }: { active: boolean, label: st
     <button
       onClick={onClick}
       className={cn(
-        "flex-1 py-2 rounded-xl text-[11px] font-bold transition-all duration-300",
-        active ? "bg-white text-primary shadow-sm" : "text-slate-400 hover:text-slate-600"
+        "flex-1 py-3 rounded-xl text-[12px] font-bold transition-all duration-300",
+        active
+          ? "bg-[#2563EB] text-white shadow-lg shadow-blue-500/30 scale-105 ring-2 ring-blue-500 ring-offset-2"
+          : "bg-transparent text-slate-400 border-2 border-slate-100 hover:border-blue-200 hover:text-blue-500"
       )}
     >
       {label}
@@ -694,10 +751,10 @@ const getAETColor = (level: string) => {
 function TailoringText({ name }: { name: string }) {
   const [index, setIndex] = useState(0);
   const messages = [
-    `Analyzing AET Targets...`,
-    `Personalizing for ${name}...`,
-    `Applying Sensory Standards...`,
-    `Generating Widgit/PCS Visuals...`
+    `Syncing with AET Framework...`,
+    `Saving to Student Library...`,
+    `Optimizing A4 Layout...`,
+    `Finalizing Visuals...`
   ];
 
   useEffect(() => {

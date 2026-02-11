@@ -27,11 +27,11 @@ All "image_prompt" fields MUST strictly follow this style:
 Return ONLY a JSON object. No conversational filler.`;
 
 export const getFormatPrompt = (type: string, topic: string, student: any) => {
-    // Shared image style suffix for consistency
-    const symbolStyle = "Widgit/PCS style symbol, thick bold black outlines, flat colors, white background, no shading, simple 2D vector, centered";
+  // Shared image style suffix for consistency
+  const symbolStyle = "Widgit/PCS style symbol, thick bold black outlines, flat colors, white background, no shading, simple 2D vector, centered";
 
-    if (type === 'story') {
-        return `Task: Social Story for "${topic}".
+  if (type === 'story') {
+    return `Task: Social Story for "${topic}".
 JSON structure:
 { 
   "title": "Clear Literal Title", 
@@ -43,10 +43,10 @@ JSON structure:
     }
   ] 
 } (Strictly 4 sequential steps)`;
-    }
+  }
 
-    if (type === 'pecs') {
-        return `Task: Communication Cards (PECS) for "${topic}".
+  if (type === 'pecs') {
+    return `Task: Communication Cards (PECS) for "${topic}".
 JSON structure:
 { 
   "title": "Category: ${topic}", 
@@ -58,10 +58,10 @@ JSON structure:
     }
   ] 
 } (Strictly 6 cards)`;
-    }
+  }
 
-    // Worksheet / Choice Selection
-    return `Task: Choice Selection Worksheet for "${topic}".
+  // Worksheet / Choice Selection
+  return `Task: Choice Selection Worksheet for "${topic}".
 JSON structure:
 { 
   "title": "Topic: ${topic}", 
@@ -78,14 +78,14 @@ JSON structure:
       "correct_answer_index": 0
     }
   ] 
-} (Strictly 3 questions, each with 3 visual choices)`;
+} (Strictly between 3 to 5 questions, each with 3 visual choices)`;
 };
 
 export const getRegenerationPrompt = (text: string, type: 'story' | 'pecs' | 'symbol') => {
-    const baseStyle = "Widgit/PCS style symbol, thick bold black outlines, flat colors, white background, no shading, 2D minimalist vector";
+  const baseStyle = "Widgit/PCS style symbol, thick bold black outlines, flat colors, white background, no shading, 2D minimalist vector";
 
-    if (type === 'pecs') {
-        return `${baseStyle}, single isolated object of "${text}", centered, no background clutter`;
-    }
-    return `${baseStyle}, representing the action or concept: "${text}"`;
+  if (type === 'pecs') {
+    return `${baseStyle}, single isolated object of "${text}", centered, no background clutter`;
+  }
+  return `${baseStyle}, representing the action or concept: "${text}"`;
 };

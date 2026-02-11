@@ -241,17 +241,77 @@ export function ResourcePreview({ content, type, mode, onUpdate }: { content: an
                             {/* Visual Choices Grid */}
                             <div className="grid grid-cols-3 gap-6 mt-2 ml-12 mr-12">
                                 {q.choices?.map((choice: any, cIdx: number) => (
-                                    <div key={cIdx} className="flex flex-col items-center gap-3">
-                                        <div className="w-full aspect-square border-2 border-slate-200 rounded-2xl p-4 flex items-center justify-center relative bg-white">
+                                    <div key={cIdx} className="flex flex-col items-center gap-3 relative group/choice">
+                                        {/* Edit Trigger for Choice Label */}
+                                        <div className="absolute top-0 right-0 p-1 opacity-0 group-hover/choice:opacity-100 transition-opacity text-slate-400 cursor-pointer z-20"
+                                            onClick={() => document.getElementById(`text-choice-${idx}-${cIdx}`)?.focus()}>
+                                            <Pencil className="w-3 h-3" />
+                                        </div>
+
+                                        <div className="w-full aspect-square border-2 border-slate-200 rounded-2xl p-4 flex items-center justify-center relative bg-white shadow-sm group-hover/choice:border-primary/30 transition-colors">
                                             {choice.image_url ? (
                                                 <img src={choice.image_url} className="w-full h-full object-contain" />
                                             ) : (
                                                 <div className="w-full h-full bg-slate-50 rounded-xl animate-pulse" />
                                             )}
-                                            {/* Manual Marking Checkbox */}
-                                            <div className="absolute top-2 left-2 w-6 h-6 border-2 border-slate-300 rounded-md bg-white/80" />
+                                            {/* Circular Checkbox */}
+                                            <div className="absolute top-3 left-3 w-8 h-8 border-2 border-slate-300 rounded-full bg-white/90 shadow-sm" />
                                         </div>
-                                        <span className="font-bold text-sm text-slate-600">{choice.label}</span>
+
+                                        {(mode === "en" || mode === "bilingual") && (
+                                            <span
+                                                id={`text-choice-${idx}-${cIdx}`}
+                                                className="font-bold text-sm text-slate-600 text-center outline-none border border-transparent hover:border-slate-100 rounded px-1"
+                                                contentEditable
+                                                suppressContentEditableWarning
+                                                onBlur={(e) => {
+                                                    const val = e.currentTarget.innerText;
+                                                    const newQuestions = [...data.questions];
+                                                    newQuestions[idx].choices[cIdx].label = val;
+                                                    onUpdate({ ...content, content: { ...data, questions: newQuestions } });
+                                                    // Trigger Regen
+                                                    if (val) {
+                                                        const newPrompt = `Widgit/PCS style symbol, thick bold black outlines, flat colors, white background, no shading, simple 2D vector, centered, representation of: ${val}`;
+                                                        // We reuse the generic regen function but need to manually call api since structure differs slightly or update logic
+                                                        // Or better: update the generic handleRegenerate to handle choice paths? 
+                                                        // For simplicity, let's call a specific choice regen here or misuse handleRegenerateImage
+
+                                                        // To properly support choice regen, we need to adapt handleRegenerateImage or write a custom one.
+                                                        // Let's assume we can add a specialized handler.
+                                                        // For now, I'll inline the call:
+                                                        toast({ title: "Regenerating Choice Visual..." });
+                                                        apiRequest("POST", "/api/ai/regenerate-image", { text: val, type: 'symbol' })
+                                                            .then(res => res.json())
+                                                            .then(({ image_url }) => {
+                                                                const brandNewQuestions = [...data.questions]; // fetch fresh? no, rely on state
+                                                                // Actually we need to rely on the latest data. 
+                                                                // 'data' here is from render closure. Ideally we update through parent.
+                                                                // But let's just update and call onUpdate again.
+                                                                brandNewQuestions[idx].choices[cIdx].image_url = image_url;
+                                                                onUpdate({ ...content, content: { ...data, questions: brandNewQuestions } });
+                                                            });
+                                                    }
+                                                }}
+                                            >
+                                                {choice.label_en || choice.label}
+                                            </span>
+                                        )}
+                                        {(mode === "ar" || mode === "bilingual") && (
+                                            <span
+                                                className="font-bold text-sm text-slate-600 text-center outline-none border border-transparent hover:border-slate-100 rounded px-1 font-sans"
+                                                dir="rtl"
+                                                contentEditable
+                                                suppressContentEditableWarning
+                                                onBlur={(e) => {
+                                                    const val = e.currentTarget.innerText;
+                                                    const newQuestions = [...data.questions];
+                                                    newQuestions[idx].choices[cIdx].label_ar = val; // Assuming schema has label_ar
+                                                    onUpdate({ ...content, content: { ...data, questions: newQuestions } });
+                                                }}
+                                            >
+                                                {choice.label_ar || choice.label}
+                                            </span>
+                                        )}
                                     </div>
                                 ))}
                             </div>
